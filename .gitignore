@@ -28,4 +28,5 @@
 *.app
 
 # Custom
-/build
+/Debug
+/Release
