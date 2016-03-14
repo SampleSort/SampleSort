@@ -20,6 +20,7 @@ SampleSort::SampleSort(int mpiRank, int mpiSize, bool presortLocalData, size_t s
 		mpiRank(mpiRank),
 		mpiSize(mpiSize)
 {
+	splitter = 0;
 }
 
 void SampleSort::sort(vector<int> &data) {
@@ -28,8 +29,21 @@ void SampleSort::sort(vector<int> &data) {
 	}
 
 	vector<int> samples;
+	vector<size_t> positions;
+
 	drawSamples(data, samples);
 	sortSamples(samples);
+	partitionData(data, positions);
+
+	cout << mpiRank << ": positions = ";
+
+	for (int i = 0; i < positions.size(); i++) {
+		cout << dec << positions[i] << ",";
+	}
+
+	shareData(data, positions);
+
+	cout << endl;
 }
 
 void SampleSort::drawSamples(vector<int> &data, vector<int> &samples) {
@@ -84,9 +98,35 @@ void SampleSort::sortSamples(vector<int> &samples) {
 	cout << mpiRank << ": After gather" << endl;
 	COMM_WORLD.Barrier();
 
+	splitter = new int[mpiSize - 1];
+
 	if (mpiRank == CUSTOM_MPI_ROOT) {
+		cout << "all samples = ";
+
 		for (int i = 0; i < receiveSize; i++) {
 			cout << hex << receiveBuffer[i] << ",";
+		}
+
+		cout << endl;
+
+		std::sort(receiveBuffer, receiveBuffer + receiveSize);
+
+		cout << "all samples sorted = ";
+
+		for (int i = 0; i < receiveSize; i++) {
+			cout << hex << receiveBuffer[i] << ",";
+		}
+
+		cout << endl;
+
+		for (int i = 0; i < mpiSize - 1; i++) {
+			splitter[i] = receiveBuffer[(i + 1) * sampleSize - 1];
+		}
+
+		cout << "splitter = ";
+
+		for (int i = 0; i < mpiSize - 1; i++) {
+			cout << hex << splitter[i] << ",";
 		}
 
 		cout << endl;
@@ -94,8 +134,45 @@ void SampleSort::sortSamples(vector<int> &samples) {
 		delete receiveBuffer;
 	}
 
+	COMM_WORLD.Bcast(splitter, mpiSize - 1, MPI::INT, CUSTOM_MPI_ROOT);
+
 	COMM_WORLD.Barrier();
 	cout << mpiRank << ": Finished sorting samples" << endl;
+}
+
+void SampleSort::partitionData(vector<int> &data, vector<size_t> &positions) {
+	// BINARY SEARCH FOR SPLITTER POSITIONS
+	auto first = data.begin();
+
+	for (int i = 0; i < mpiSize - 1; i++) {
+		first = lower_bound(first, data.end(), splitter[i]);
+		positions.push_back(first - data.begin());
+	}
+}
+
+void SampleSort::shareData(vector<int> &data, vector<size_t> &positions) {
+	size_t *bucketSizes = new size_t[mpiSize];
+	size_t *recBucketSizes = new size_t[mpiSize];
+
+	bucketSizes[0] = positions[0];
+
+	for (int i = 1; i < mpiSize - 1; i++) {
+		bucketSizes[i] = positions[i] - positions[i-1];
+	}
+
+	bucketSizes[mpiSize - 1] = data.size() - positions[mpiSize - 2];
+
+	COMM_WORLD.Alltoall(bucketSizes, 1, MPI::UNSIGNED_LONG, recBucketSizes, 1, MPI::UNSIGNED_LONG);
+
+	size_t receiveSize = 0;
+
+	for (int i = 0; i < mpiSize; i++) {
+		receiveSize += recBucketSizes[i];
+	}
+
+	int *receivedData = new int[receiveSize];
+
+	COMM_WORLD.Alltoall
 }
 
 SampleSort::~SampleSort() {
