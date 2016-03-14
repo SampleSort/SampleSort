@@ -85,12 +85,12 @@ int main(int argc, char *argv[]) {
 	vector<int> data(TEST_DATA_SIZE);
 	generateRandomData(data);
 
-	sorter.sort(data);
+	vector<int> result = sorter.sort(data);
 
 	cout << mpiRank << ": Finished sorting" << endl;
 	COMM_WORLD.Barrier();
 
-//	if (checkSorting(data)) {
+//	if (checkSorting(result)) {
 //		cout << mpiRank << ": Sorting complete!" << endl;
 //	} else {
 //		cout << mpiRank << ": Sorting failed!" << endl;

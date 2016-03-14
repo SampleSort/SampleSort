@@ -19,20 +19,20 @@ private:
 	const int mpiRank;
 	const int mpiSize;
 	const bool presortLocalData;
-	const size_t sampleSize;
+	const int sampleSize;
 
 	int *splitter;
 
 public:
-	SampleSort(int mpiRank, int mpiSize, bool presortLocalData, size_t sampleSize);
+	SampleSort(int mpiRank, int mpiSize, bool presortLocalData, int sampleSize);
 	virtual ~SampleSort();
 
 
-	void sort(vector<int> &data);
+	vector<int> sort(vector<int> &data);
 	void drawSamples(vector<int> &data, vector<int> &samples);
 	void sortSamples(vector<int> &samples);
-	void partitionData(vector<int> &data, vector<size_t> &positions);
-	void shareData(vector<int> &data, vector<size_t> &positions);
+	void partitionData(vector<int> &data, vector<int> &positions);
+	vector<int> shareData(vector<int> &data, vector<int> &positions);
 };
 
 #endif /* SAMPLESORT_H_ */

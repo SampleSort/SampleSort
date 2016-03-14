@@ -14,7 +14,7 @@ using namespace MPI;
 
 const int CUSTOM_MPI_ROOT = 0;
 
-SampleSort::SampleSort(int mpiRank, int mpiSize, bool presortLocalData, size_t sampleSize) :
+SampleSort::SampleSort(int mpiRank, int mpiSize, bool presortLocalData, int sampleSize) :
 		presortLocalData(presortLocalData),
 		sampleSize(sampleSize),
 		mpiRank(mpiRank),
@@ -23,13 +23,13 @@ SampleSort::SampleSort(int mpiRank, int mpiSize, bool presortLocalData, size_t s
 	splitter = 0;
 }
 
-void SampleSort::sort(vector<int> &data) {
+vector<int> SampleSort::sort(vector<int> &data) {
 	if (presortLocalData) {
 		std::sort(data.begin(), data.end());
 	}
 
 	vector<int> samples;
-	vector<size_t> positions;
+	vector<int> positions;
 
 	drawSamples(data, samples);
 	sortSamples(samples);
@@ -41,9 +41,9 @@ void SampleSort::sort(vector<int> &data) {
 		cout << dec << positions[i] << ",";
 	}
 
-	shareData(data, positions);
-
 	cout << endl;
+
+	return shareData(data, positions);
 }
 
 void SampleSort::drawSamples(vector<int> &data, vector<int> &samples) {
@@ -55,7 +55,7 @@ void SampleSort::drawSamples(vector<int> &data, vector<int> &samples) {
 void SampleSort::sortSamples(vector<int> &samples) {
 	int sendBuffer[samples.size()];
 	int *receiveBuffer = 0;
-	size_t receiveSize = sampleSize * mpiSize;
+	int receiveSize = sampleSize * mpiSize;
 
 	if (mpiRank == CUSTOM_MPI_ROOT) {
 		receiveBuffer = new int[receiveSize];
@@ -71,7 +71,7 @@ void SampleSort::sortSamples(vector<int> &samples) {
 	cout << mpiRank << ": sizeof(MPI_INT) = " << sizeof(MPI::INT) << endl;
 	cout << mpiRank << ": MPI_INT = " << MPI::INT << endl;
 
-	for (size_t i = 0; i < samples.size(); i++) {
+	for (int i = 0; i < samples.size(); i++) {
 		sendBuffer[i] = samples[i];
 		cout << hex << samples[i] << ",";
 	}
@@ -140,7 +140,7 @@ void SampleSort::sortSamples(vector<int> &samples) {
 	cout << mpiRank << ": Finished sorting samples" << endl;
 }
 
-void SampleSort::partitionData(vector<int> &data, vector<size_t> &positions) {
+void SampleSort::partitionData(vector<int> &data, vector<int> &positions) {
 	// BINARY SEARCH FOR SPLITTER POSITIONS
 	auto first = data.begin();
 
@@ -151,9 +151,9 @@ void SampleSort::partitionData(vector<int> &data, vector<size_t> &positions) {
 	}
 }
 
-void SampleSort::shareData(vector<int> &data, vector<size_t> &positions) {
-	size_t *bucketSizes = new size_t[mpiSize];
-	size_t *recBucketSizes = new size_t[mpiSize];
+vector<int> SampleSort::shareData(vector<int> &data, vector<int> &positions) {
+	int *bucketSizes = new int[mpiSize];
+	int *recBucketSizes = new int[mpiSize];
 
 	for (int i = 0; i < mpiSize - 1; i++) {
 		bucketSizes[i] = positions[i + 1] - positions[i];
@@ -161,18 +161,33 @@ void SampleSort::shareData(vector<int> &data, vector<size_t> &positions) {
 
 	bucketSizes[mpiSize - 1] = data.size() - positions[mpiSize - 1];
 
-	COMM_WORLD.Alltoall(bucketSizes, 1, MPI::UNSIGNED_LONG, recBucketSizes, 1, MPI::UNSIGNED_LONG);
+	COMM_WORLD.Alltoall(bucketSizes, 1, MPI::INT, recBucketSizes, 1, MPI::INT);
 
-	size_t receiveSize = 0;
+	int receiveSize = 0;
 
 	for (int i = 0; i < mpiSize; i++) {
 		receiveSize += recBucketSizes[i];
 	}
 
 	int *receivedData = new int[receiveSize];
-	//size
+	int *recPositions = new int[mpiSize];
 
-	//COMM_WORLD.Alltoallv();
+	recPositions[0] = 0;
+	for (int i = 1; i < mpiSize; i++) {
+		recPositions[i] = recBucketSizes[i - 1] + recPositions[i - 1];
+	}
+
+	COMM_WORLD.Alltoallv(data.data(), bucketSizes, positions.data(), MPI::INT, receivedData, recBucketSizes, recPositions, MPI::INT);
+
+	delete bucketSizes;
+	delete recBucketSizes;
+	delete recPositions;
+
+	std::sort(receivedData, receivedData + receiveSize);
+
+	vector<int> result(receivedData, receivedData + receiveSize);
+	delete receivedData;
+	return result;
 }
 
 SampleSort::~SampleSort() {
