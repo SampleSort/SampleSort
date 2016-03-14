@@ -36,9 +36,6 @@ void generateRandomData(vector<int> &data) {
 }
 
 bool checkSorting(vector<int> &array) {
-	MPI_Status recvFromLower;
-	MPI_Status recvFromHigher;
-
 	int fromLower = 0;
 	int fromHigher = 0;
 	int toLower = array[0];
@@ -46,23 +43,23 @@ bool checkSorting(vector<int> &array) {
 
 
 	if (mpiRank < mpiSize - 1) {
-		MPI_Recv(&fromHigher, 1, MPI_INT, mpiRank + 1, SEND_LOWEST_TAG, COMM_WORLD, &recvFromHigher);
+		COMM_WORLD.Recv(&fromHigher, 1, MPI::INT, mpiRank + 1, SEND_LOWEST_TAG);
 	}
 
 	if (mpiRank > 0) {
-		MPI_Send(&toLower, 1, MPI_INT, mpiRank - 1, SEND_LOWEST_TAG, COMM_WORLD);
+		COMM_WORLD.Send(&toLower, 1, MPI::INT, mpiRank - 1, SEND_LOWEST_TAG);
 	}
 
 	if (mpiRank > 0) {
-		MPI_Recv(&fromLower, 1, MPI_INT, mpiRank - 1, SEND_HIGHEST_TAG, COMM_WORLD, &recvFromLower);
+		COMM_WORLD.Recv(&fromLower, 1, MPI::INT, mpiRank - 1, SEND_HIGHEST_TAG);
 	}
 
 	if (mpiRank < mpiSize - 1) {
-		MPI_Send(&toHigher, 1, MPI_INT, mpiRank + 1, SEND_HIGHEST_TAG, COMM_WORLD);
+		COMM_WORLD.Send(&toHigher, 1, MPI::INT, mpiRank + 1, SEND_HIGHEST_TAG);
 	}
 
 	cout << mpiRank << ": Received sorting check data" << endl;
-	MPI_Barrier(COMM_WORLD);
+	COMM_WORLD.Barrier();
 
 	if (fromLower > array[0] || fromHigher < array[mpiSize - 1]) {
 		return false;
@@ -91,7 +88,7 @@ int main(int argc, char *argv[]) {
 	sorter.sort(data);
 
 	cout << mpiRank << ": Finished sorting" << endl;
-	MPI_Barrier(COMM_WORLD);
+	COMM_WORLD.Barrier();
 
 //	if (checkSorting(data)) {
 //		cout << mpiRank << ": Sorting complete!" << endl;
@@ -100,6 +97,6 @@ int main(int argc, char *argv[]) {
 //	}
 
 
-	MPI_Barrier(COMM_WORLD);
+	COMM_WORLD.Barrier();
 	Finalize();
 }
