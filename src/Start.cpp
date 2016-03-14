@@ -12,6 +12,8 @@
 #include <iostream>
 #include <cstdlib>
 
+#include "SampleSort.h"
+
 using namespace std;
 
 const int TEST_DATA_SIZE = 50000;
