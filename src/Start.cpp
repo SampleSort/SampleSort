@@ -36,29 +36,33 @@ void generateRandomData(vector<int> &data) {
 }
 
 bool checkSorting(vector<int> &array) {
-	MPI_Request sendLowest;
-	MPI_Request sendHighest;
 	MPI_Status recvFromLower;
 	MPI_Status recvFromHigher;
 
-	if (mpiRank > 0) {
-		MPI_Isend(&array[0], 1, MPI_INT, mpiRank - 1, SEND_LOWEST_TAG, COMM_WORLD, &sendLowest);
-	}
-
-	if (mpiRank < mpiSize - 1) {
-		MPI_Isend(&array[mpiSize - 1], 1, MPI_INT, mpiRank + 1, SEND_HIGHEST_TAG, COMM_WORLD, &sendHighest);
-	}
-
 	int fromLower = 0;
 	int fromHigher = 0;
+	int toLower = array[0];
+	int toHigher = array[array.size() - 1];
+
+
+	if (mpiRank < mpiSize - 1) {
+		MPI_Recv(&fromHigher, 1, MPI_INT, mpiRank + 1, SEND_LOWEST_TAG, COMM_WORLD, &recvFromHigher);
+	}
+
+	if (mpiRank > 0) {
+		MPI_Send(&toLower, 1, MPI_INT, mpiRank - 1, SEND_LOWEST_TAG, COMM_WORLD);
+	}
 
 	if (mpiRank > 0) {
 		MPI_Recv(&fromLower, 1, MPI_INT, mpiRank - 1, SEND_HIGHEST_TAG, COMM_WORLD, &recvFromLower);
 	}
 
 	if (mpiRank < mpiSize - 1) {
-		MPI_Recv(&fromHigher, 1, MPI_INT, mpiRank + 1, SEND_LOWEST_TAG, COMM_WORLD, &recvFromHigher);
+		MPI_Send(&toHigher, 1, MPI_INT, mpiRank + 1, SEND_HIGHEST_TAG, COMM_WORLD);
 	}
+
+	cout << mpiRank << ": Received sorting check data" << endl;
+	MPI_Barrier(COMM_WORLD);
 
 	if (fromLower > array[0] || fromHigher < array[mpiSize - 1]) {
 		return false;
@@ -74,11 +78,11 @@ bool checkSorting(vector<int> &array) {
 }
 
 int main(int argc, char *argv[]) {
-	// TODO srand(5);
-
 	Init(argc, argv);
 	mpiSize = COMM_WORLD.Get_size();
 	mpiRank = COMM_WORLD.Get_rank();
+
+	srand((mpiRank << 16) + mpiRank);
 
 	SampleSort sorter(mpiRank, mpiSize, true, 5);
 	vector<int> data(TEST_DATA_SIZE);
@@ -86,11 +90,16 @@ int main(int argc, char *argv[]) {
 
 	sorter.sort(data);
 
-	if (checkSorting(data)) {
-		cout << "Sorting complete!" << endl;
-	} else {
-		cout << "Sorting failed!" << endl;
-	}
+	cout << mpiRank << ": Finished sorting" << endl;
+	MPI_Barrier(COMM_WORLD);
 
+//	if (checkSorting(data)) {
+//		cout << mpiRank << ": Sorting complete!" << endl;
+//	} else {
+//		cout << mpiRank << ": Sorting failed!" << endl;
+//	}
+
+
+	MPI_Barrier(COMM_WORLD);
 	Finalize();
 }

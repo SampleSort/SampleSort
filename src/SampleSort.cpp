@@ -46,11 +46,21 @@ void SampleSort::sortSamples(vector<int> &samples) {
 		receiveBuffer = new int[receiveSize];
 	}
 
+	cout << mpiRank << ": receiveSize = " << receiveSize << endl;
+	cout << mpiRank << ": sizeof(MPI_INT) = " << sizeof(MPI_INT) << endl;
+	cout << mpiRank << ": MPI_INT = " << MPI_INT << endl;
+
 	for (size_t i = 0; i < samples.size(); i++) {
 		sendBuffer[i] = samples[i];
+		cout << samples[i] << ",";
 	}
 
+	cout << endl;
+
 	MPI_Gather(sendBuffer, samples.size(), MPI_INT, receiveBuffer, receiveSize, MPI_INT, CUSTOM_MPI_ROOT, COMM_WORLD);
+
+	cout << mpiRank << ": After gather" << endl;
+	MPI_Barrier(COMM_WORLD);
 
 	if (mpiRank == CUSTOM_MPI_ROOT) {
 		delete receiveBuffer;
