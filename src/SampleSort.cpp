@@ -144,6 +144,7 @@ void SampleSort::partitionData(vector<int> &data, vector<size_t> &positions) {
 	// BINARY SEARCH FOR SPLITTER POSITIONS
 	auto first = data.begin();
 
+	positions.push_back(0);
 	for (int i = 0; i < mpiSize - 1; i++) {
 		first = lower_bound(first, data.end(), splitter[i]);
 		positions.push_back(first - data.begin());
@@ -154,13 +155,11 @@ void SampleSort::shareData(vector<int> &data, vector<size_t> &positions) {
 	size_t *bucketSizes = new size_t[mpiSize];
 	size_t *recBucketSizes = new size_t[mpiSize];
 
-	bucketSizes[0] = positions[0];
-
-	for (int i = 1; i < mpiSize - 1; i++) {
-		bucketSizes[i] = positions[i] - positions[i-1];
+	for (int i = 0; i < mpiSize - 1; i++) {
+		bucketSizes[i] = positions[i + 1] - positions[i];
 	}
 
-	bucketSizes[mpiSize - 1] = data.size() - positions[mpiSize - 2];
+	bucketSizes[mpiSize - 1] = data.size() - positions[mpiSize - 1];
 
 	COMM_WORLD.Alltoall(bucketSizes, 1, MPI::UNSIGNED_LONG, recBucketSizes, 1, MPI::UNSIGNED_LONG);
 
@@ -171,8 +170,9 @@ void SampleSort::shareData(vector<int> &data, vector<size_t> &positions) {
 	}
 
 	int *receivedData = new int[receiveSize];
+	//size
 
-	COMM_WORLD.Alltoall
+	//COMM_WORLD.Alltoallv();
 }
 
 SampleSort::~SampleSort() {
