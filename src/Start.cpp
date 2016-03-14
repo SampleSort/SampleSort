@@ -17,6 +17,8 @@
 using namespace std;
 
 const int TEST_DATA_SIZE = 50000;
+int size;
+int rank;
 
 
 void generateRandomData(int *array, int size) {
@@ -36,17 +38,21 @@ bool checkSorting(int *array, int size) {
 }
 
 int main(int argc, char *argv[]) {
+	MPI::Init(argc, argv);
+	size = MPI::COMM_WORLD.Get_size();
+	rank = MPI::COMM_WORLD.Get_rank();
+
 	SampleSort sorter;
 	int data[TEST_DATA_SIZE];
 	generateRandomData(data, TEST_DATA_SIZE);
 
-	sorter.openMPI(argc, argv);
 	sorter.sort(data);
-	sorter.closeMPI();
 
 	if (checkSorting(data, TEST_DATA_SIZE)) {
 		cout << "Sorting complete!" << endl;
 	} else {
 		cout << "Sorting failed!" << endl;
 	}
+
+	MPI::Finalize();
 }
