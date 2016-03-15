@@ -5,6 +5,7 @@
  *      Author: s_sschmi
  */
 
+#include "mpi.h"
 #include "SampleSort.h"
 #include "Random.h"
 

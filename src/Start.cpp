@@ -8,6 +8,7 @@
  ============================================================================
  */
 
+#include "mpi.h"
 #include "SampleSort.h"
 #include "Random.h"
 
@@ -16,6 +17,7 @@
 #include <cstdlib>
 #include <vector>
 #include <random>
+#include <chrono>
 
 
 using namespace std;
@@ -23,7 +25,7 @@ using namespace MPI;
 
 
 
-const int TEST_DATA_SIZE = 50000;
+const int TEST_DATA_SIZE = 500000;
 const int SEND_LOWEST_TAG = 0;
 const int SEND_HIGHEST_TAG = 1;
 
@@ -93,7 +95,16 @@ int main(int argc, char *argv[]) {
 	vector<int> data(TEST_DATA_SIZE);
 	generateRandomData(data);
 
+	COMM_WORLD.Barrier();
+	chrono::high_resolution_clock::time_point start = chrono::high_resolution_clock::now();
+	COMM_WORLD.Barrier();
+
 	vector<int> result = sorter.sort(data);
+
+	COMM_WORLD.Barrier();
+	chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
+
+	cout << "Sorting took " << chrono::duration_cast<chrono::microseconds>(end - start).count() << "ms" << endl;
 
 	if (checkSorting(result)) {
 		cout << mpiRank << ": Sorting complete!" << endl;

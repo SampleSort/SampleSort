@@ -8,7 +8,6 @@
 #ifndef SAMPLESORT_H_
 #define SAMPLESORT_H_
 
-#include "mpi.h"
 #include "Debug.h"
 
 #include <vector>
