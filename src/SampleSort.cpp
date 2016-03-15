@@ -6,8 +6,12 @@
  */
 
 #include "SampleSort.h"
+#include "Random.h"
+
 #include <algorithm>
 #include <iomanip>
+#include <random>
+
 
 using namespace std;
 using namespace MPI;
@@ -39,12 +43,19 @@ vector<int> SampleSort::sort(vector<int> &data) {
 }
 
 void SampleSort::drawSamples(vector<int> &data, vector<int> &samples) {
+	default_random_engine randomGenerator(getSeed() * (mpiRank + 5));
+	uniform_int_distribution<int> randomDistribution(0, data.size() - 1);
+
 	while (samples.size() < sampleSize) {
-		samples.push_back(data[rand() % data.size()]);
+		int randomValue = randomDistribution(randomGenerator);
+		samples.push_back(data[randomValue]);
+		DEBUGV(randomValue)
 	}
 }
 
 void SampleSort::sortSamples(vector<int> &samples) {
+	DEBUG("Enter sortSamples");
+
 	int *receiveBuffer = 0;
 	int receiveSize = sampleSize * mpiSize;
 
@@ -71,9 +82,13 @@ void SampleSort::sortSamples(vector<int> &samples) {
 	}
 
 	COMM_WORLD.Bcast(splitter, mpiSize - 1, MPI::INT, CUSTOM_MPI_ROOT);
+
+	DEBUG("Exit sortSamples");
 }
 
 void SampleSort::partitionData(vector<int> &data, vector<int> &positions) {
+	DEBUG("Enter partitionData");
+
 	// BINARY SEARCH FOR SPLITTER POSITIONS
 	auto first = data.begin();
 
@@ -82,14 +97,23 @@ void SampleSort::partitionData(vector<int> &data, vector<int> &positions) {
 		first = lower_bound(first, data.end(), splitter[i]);
 		positions.push_back(first - data.begin());
 	}
+
+	DEBUG("Exit partitionData");
 }
 
 vector<int> SampleSort::shareData(vector<int> &data, vector<int> &positions) {
+	DEBUG("Enter shareData");
+	DEBUGV(positions.size())
+
 	int *bucketSizes = new int[mpiSize];
 	int *recBucketSizes = new int[mpiSize];
 
 	for (int i = 0; i < mpiSize - 1; i++) {
 		bucketSizes[i] = positions[i + 1] - positions[i];
+
+		if (i == 5) {
+		DEBUGV(positions[i])
+		DEBUGV(bucketSizes[i])}
 	}
 
 	bucketSizes[mpiSize - 1] = data.size() - positions[mpiSize - 1];
@@ -101,6 +125,8 @@ vector<int> SampleSort::shareData(vector<int> &data, vector<int> &positions) {
 	for (int i = 0; i < mpiSize; i++) {
 		receiveSize += recBucketSizes[i];
 	}
+
+	DEBUGV(receiveSize)
 
 	int *receivedData = new int[receiveSize];
 	int *recPositions = new int[mpiSize];
@@ -120,6 +146,8 @@ vector<int> SampleSort::shareData(vector<int> &data, vector<int> &positions) {
 
 	vector<int> result(receivedData, receivedData + receiveSize);
 	delete receivedData;
+
+	DEBUG("Exit shareData");
 	return result;
 }
 

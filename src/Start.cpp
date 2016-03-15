@@ -8,12 +8,15 @@
  ============================================================================
  */
 
+#include "SampleSort.h"
+#include "Random.h"
+
 #include <math.h>
 #include <iostream>
 #include <cstdlib>
 #include <vector>
+#include <random>
 
-#include "SampleSort.h"
 
 using namespace std;
 using namespace MPI;
@@ -30,12 +33,22 @@ int mpiRank;
 
 
 void generateRandomData(vector<int> &data) {
+	default_random_engine randomGenerator(getSeed());
+	uniform_int_distribution<int> randomDistribution(-data.size() * mpiSize, data.size() * mpiSize);
+
 	for (int i = 0; i < data.capacity(); i++) {
-		data[i] = rand();
+		data[i] = randomDistribution(randomGenerator);
+		//cout << data[i] << endl;
 	}
 }
 
 bool checkSorting(vector<int> &array) {
+	DEBUG("Enter checkSorting")
+
+	if (array.size() == 0) {
+		DEBUG("Array is empty");
+	}
+
 	int fromLower = 0;
 	int fromHigher = 0;
 	int toLower = array[0];
@@ -76,8 +89,6 @@ int main(int argc, char *argv[]) {
 	mpiSize = COMM_WORLD.Get_size();
 	mpiRank = COMM_WORLD.Get_rank();
 
-	srand((mpiRank << 16) + mpiRank);
-
 	SampleSort sorter(mpiRank, mpiSize, true, 5);
 	vector<int> data(TEST_DATA_SIZE);
 	generateRandomData(data);
@@ -90,5 +101,6 @@ int main(int argc, char *argv[]) {
 		cout << mpiRank << ": Sorting failed!" << endl;
 	}
 
+	DEBUG("Finalizing")
 	Finalize();
 }

@@ -9,8 +9,9 @@
 #define SAMPLESORT_H_
 
 #include "mpi.h"
+#include "Debug.h"
+
 #include <vector>
-#include <cstdlib>
 
 using namespace std;
 
