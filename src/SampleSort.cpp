@@ -78,22 +78,22 @@ void SampleSort::sortSamples(vector<int> &samples) {
 
 	cout << endl;
 
-	if (mpiRank == CUSTOM_MPI_ROOT) {
-		cout << mpiRank << ": copy local data" << endl;
+//	if (mpiRank == CUSTOM_MPI_ROOT) {
+//		cout << mpiRank << ": copy local data" << endl;
+//
+//		for (int i = 0; i < sampleSize; i++) {
+//			receiveBuffer[i] = sendBuffer[i];
+//		}
+//
+//		for (int i = 1; i < mpiSize; i++) {
+//			cout << mpiRank << ": receiving from " << i << endl;
+//			COMM_WORLD.Recv(receiveBuffer + (i * sampleSize), sampleSize, MPI::INT, i, MPI::ANY_TAG);
+//		}
+//	} else {
+//		COMM_WORLD.Send(sendBuffer, sampleSize, MPI::INT, 0, 0);
+//	}
 
-		for (int i = 0; i < sampleSize; i++) {
-			receiveBuffer[i] = sendBuffer[i];
-		}
-
-		for (int i = 1; i < mpiSize; i++) {
-			cout << mpiRank << ": receiving from " << i << endl;
-			COMM_WORLD.Recv(receiveBuffer + (i * sampleSize), sampleSize, MPI::INT, i, MPI::ANY_TAG);
-		}
-	} else {
-		COMM_WORLD.Send(sendBuffer, sampleSize, MPI::INT, 0, 0);
-	}
-
-	//COMM_WORLD.Gather(sendBuffer, samples.size(), MPI::INT, receiveBuffer, receiveSize, MPI::INT, CUSTOM_MPI_ROOT);
+	COMM_WORLD.Gather(sendBuffer, samples.size(), MPI::INT, receiveBuffer, samples.size(), MPI::INT, CUSTOM_MPI_ROOT);
 
 	cout << mpiRank << ": After gather" << endl;
 	COMM_WORLD.Barrier();
