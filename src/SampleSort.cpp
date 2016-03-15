@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <random>
+#include <iterator>
 
 
 using namespace std;
@@ -24,7 +25,6 @@ SampleSort::SampleSort(int mpiRank, int mpiSize, bool presortLocalData, int samp
 		mpiRank(mpiRank),
 		mpiSize(mpiSize)
 {
-	splitter = 0;
 }
 
 vector<int> SampleSort::sort(vector<int> &data) {
@@ -34,10 +34,11 @@ vector<int> SampleSort::sort(vector<int> &data) {
 
 	vector<int> samples;
 	vector<int> positions;
+	vector<int> splitter(mpiSize - 1);
 
 	drawSamples(data, samples);
-	sortSamples(samples);
-	partitionData(data, positions);
+	sortSamples(samples, splitter);
+	partitionData(data, splitter, positions);
 
 	return shareData(data, positions);
 }
@@ -53,7 +54,7 @@ void SampleSort::drawSamples(vector<int> &data, vector<int> &samples) {
 	}
 }
 
-void SampleSort::sortSamples(vector<int> &samples) {
+void SampleSort::sortSamples(vector<int> &samples, vector<int> &splitter) {
 	DEBUG("Enter sortSamples");
 
 	int *receiveBuffer = 0;
@@ -69,8 +70,6 @@ void SampleSort::sortSamples(vector<int> &samples) {
 
 	COMM_WORLD.Gather(samples.data(), samples.size(), MPI::INT, receiveBuffer, samples.size(), MPI::INT, CUSTOM_MPI_ROOT);
 
-	splitter = new int[mpiSize - 1];
-
 	if (mpiRank == CUSTOM_MPI_ROOT) {
 		std::sort(receiveBuffer, receiveBuffer + receiveSize);
 
@@ -81,16 +80,16 @@ void SampleSort::sortSamples(vector<int> &samples) {
 		delete receiveBuffer;
 	}
 
-	COMM_WORLD.Bcast(splitter, mpiSize - 1, MPI::INT, CUSTOM_MPI_ROOT);
+	COMM_WORLD.Bcast(splitter.data(), mpiSize - 1, MPI::INT, CUSTOM_MPI_ROOT);
 
 	DEBUG("Exit sortSamples");
 }
 
-void SampleSort::partitionData(vector<int> &data, vector<int> &positions) {
+void SampleSort::partitionData(vector<int> &data, vector<int> &splitter, vector<int> &positions) {
 	DEBUG("Enter partitionData");
 
 	// BINARY SEARCH FOR SPLITTER POSITIONS
-	auto first = data.begin();
+	vector<int>::iterator first = data.begin();
 
 	positions.push_back(0);
 	for (int i = 0; i < mpiSize - 1; i++) {

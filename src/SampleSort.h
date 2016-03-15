@@ -22,8 +22,6 @@ private:
 	const bool presortLocalData;
 	const int sampleSize;
 
-	int *splitter;
-
 public:
 	SampleSort(int mpiRank, int mpiSize, bool presortLocalData, int sampleSize);
 	virtual ~SampleSort();
@@ -31,8 +29,8 @@ public:
 
 	vector<int> sort(vector<int> &data);
 	void drawSamples(vector<int> &data, vector<int> &samples);
-	void sortSamples(vector<int> &samples);
-	void partitionData(vector<int> &data, vector<int> &positions);
+	void sortSamples(vector<int> &samples, vector<int> &splitter);
+	void partitionData(vector<int> &data, vector<int> &splitter, vector<int> &positions);
 	vector<int> shareData(vector<int> &data, vector<int> &positions);
 };
 
