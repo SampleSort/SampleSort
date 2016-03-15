@@ -6,7 +6,7 @@ INCLUDEPATH = ~/include/
 _OBJECTS = Start.o SampleSort.o Random.o
 OBJECTS = $(patsubst %,build/%,$(_OBJECTS))
 
-.PHONY: all $(OBJECTS)
+.PHONY: all
 
 all: samplesort
 
@@ -21,3 +21,4 @@ build/%.d: src/%.cpp
 
 clean:
 	rm -f SampleSort
+	rm -f build/*
