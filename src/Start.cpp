@@ -58,9 +58,6 @@ bool checkSorting(vector<int> &array) {
 		COMM_WORLD.Send(&toHigher, 1, MPI::INT, mpiRank + 1, SEND_HIGHEST_TAG);
 	}
 
-	cout << mpiRank << ": Received sorting check data" << endl;
-	COMM_WORLD.Barrier();
-
 	if ((mpiRank != 0 && fromLower > array[0]) || (mpiRank < mpiSize - 1 && fromHigher < array[mpiSize - 1])) {
 		return false;
 	}
@@ -87,16 +84,11 @@ int main(int argc, char *argv[]) {
 
 	vector<int> result = sorter.sort(data);
 
-	cout << mpiRank << ": Finished sorting" << endl;
-	COMM_WORLD.Barrier();
-
 	if (checkSorting(result)) {
 		cout << mpiRank << ": Sorting complete!" << endl;
 	} else {
 		cout << mpiRank << ": Sorting failed!" << endl;
 	}
 
-
-	COMM_WORLD.Barrier();
 	Finalize();
 }
