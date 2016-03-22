@@ -26,11 +26,12 @@ public:
 	virtual ~SampleSort();
 
 
-	vector<int> sort(vector<int> &data);
+	void sort(vector<int> &data, vector<int> &sortedData);
 	void drawSamples(vector<int> &data, vector<int> &samples);
 	void sortSamples(vector<int> &samples, vector<int> &splitter);
 	void partitionData(vector<int> &data, vector<int> &splitter, vector<int> &positions);
-	vector<int> shareData(vector<int> &data, vector<int> &positions);
+	void shareData(vector<int> &data, vector<int> &positions, vector<int> &receivedData);
+	void sortData(vector<int> &receivedData);
 };
 
 #endif /* SAMPLESORT_H_ */

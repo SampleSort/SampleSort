@@ -28,7 +28,7 @@ SampleSort::SampleSort(int mpiRank, int mpiSize, bool presortLocalData, int samp
 {
 }
 
-vector<int> SampleSort::sort(vector<int> &data) {
+void SampleSort::sort(vector<int> &data, vector<int> &sortedData) {
 	if (presortLocalData) {
 		std::sort(data.begin(), data.end());
 	}
@@ -40,8 +40,8 @@ vector<int> SampleSort::sort(vector<int> &data) {
 	drawSamples(data, samples);
 	sortSamples(samples, splitter);
 	partitionData(data, splitter, positions);
-
-	return shareData(data, positions);
+	shareData(data, positions, sortedData);
+	sortData(sortedData);
 }
 
 void SampleSort::drawSamples(vector<int> &data, vector<int> &samples) {
@@ -101,7 +101,7 @@ void SampleSort::partitionData(vector<int> &data, vector<int> &splitter, vector<
 	DEBUG("Exit partitionData");
 }
 
-vector<int> SampleSort::shareData(vector<int> &data, vector<int> &positions) {
+void SampleSort::shareData(vector<int> &data, vector<int> &positions, vector<int> &receivedData) {
 	DEBUG("Enter shareData");
 	DEBUGV(positions.size())
 
@@ -110,10 +110,6 @@ vector<int> SampleSort::shareData(vector<int> &data, vector<int> &positions) {
 
 	for (int i = 0; i < mpiSize - 1; i++) {
 		bucketSizes[i] = positions[i + 1] - positions[i];
-
-		if (i == 5) {
-		DEBUGV(positions[i])
-		DEBUGV(bucketSizes[i])}
 	}
 
 	bucketSizes[mpiSize - 1] = data.size() - positions[mpiSize - 1];
@@ -127,8 +123,7 @@ vector<int> SampleSort::shareData(vector<int> &data, vector<int> &positions) {
 	}
 
 	DEBUGV(receiveSize)
-
-	int *receivedData = new int[receiveSize];
+	receivedData.resize(receiveSize);
 	int *recPositions = new int[mpiSize];
 
 	recPositions[0] = 0;
@@ -136,19 +131,18 @@ vector<int> SampleSort::shareData(vector<int> &data, vector<int> &positions) {
 		recPositions[i] = recBucketSizes[i - 1] + recPositions[i - 1];
 	}
 
-	COMM_WORLD.Alltoallv(data.data(), bucketSizes, positions.data(), MPI::INT, receivedData, recBucketSizes, recPositions, MPI::INT);
+	// Has calculated how much data from which node is received at which position in our receiver array.
+
+	COMM_WORLD.Alltoallv(data.data(), bucketSizes, positions.data(), MPI::INT, receivedData.data(), recBucketSizes, recPositions, MPI::INT);
 
 	delete bucketSizes;
 	delete recBucketSizes;
 	delete recPositions;
-
-	std::sort(receivedData, receivedData + receiveSize);
-
-	vector<int> result(receivedData, receivedData + receiveSize);
-	delete receivedData;
-
 	DEBUG("Exit shareData");
-	return result;
+}
+
+void SampleSort::sortData(vector<int> &receivedData) {
+	std::sort(receivedData.begin(), receivedData.end());
 }
 
 SampleSort::~SampleSort() {

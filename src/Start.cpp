@@ -44,46 +44,44 @@ void generateRandomData(vector<int> &data) {
 	}
 }
 
-bool checkSorting(vector<int> &array) {
-	DEBUG("Enter checkSorting")
+void checkSorted(vector<int> &array) {
+	DEBUG("Enter checkSorting");
 
-	if (array.size() == 0) {
-		DEBUG("Array is empty");
+	int size = array.size();
+	vector<int> gatheredSizes;
+
+	if (mpiRank == 0) {
+		gatheredSizes.resize(mpiSize);
 	}
 
-	int fromLower = 0;
-	int fromHigher = 0;
-	int toLower = array[0];
-	int toHigher = array[array.size() - 1];
+	COMM_WORLD.Gather(&size, 1, MPI::INT, gatheredSizes.data(), 1, MPI::INT, 0);
 
+	vector<int> allData;
+	vector<int> offsets;
 
-	if (mpiRank < mpiSize - 1) {
-		COMM_WORLD.Recv(&fromHigher, 1, MPI::INT, mpiRank + 1, SEND_LOWEST_TAG);
-	}
+	if (mpiRank == 0) {
+		offsets.resize(mpiSize);
+		offsets[0] = 0;
 
-	if (mpiRank > 0) {
-		COMM_WORLD.Send(&toLower, 1, MPI::INT, mpiRank - 1, SEND_LOWEST_TAG);
-	}
-
-	if (mpiRank > 0) {
-		COMM_WORLD.Recv(&fromLower, 1, MPI::INT, mpiRank - 1, SEND_HIGHEST_TAG);
-	}
-
-	if (mpiRank < mpiSize - 1) {
-		COMM_WORLD.Send(&toHigher, 1, MPI::INT, mpiRank + 1, SEND_HIGHEST_TAG);
-	}
-
-	if ((mpiRank != 0 && fromLower > array[0]) || (mpiRank < mpiSize - 1 && fromHigher < array[mpiSize - 1])) {
-		return false;
-	}
-
-	for (int i = 0; i < mpiSize - 1; i++) {
-		if (array[i] > array[i + 1]) {
-			return false;
+		for (int i = 1; i < mpiSize; i++) {
+			offsets[i] = gatheredSizes[i - 1] + offsets[i - 1];
 		}
+
+		allData.resize(offsets[mpiSize - 1] + gatheredSizes[mpiSize - 1]);
 	}
 
-	return true;
+	COMM_WORLD.Gatherv(array.data(), array.size(), MPI::INT, allData.data(), gatheredSizes.data(), offsets.data(), MPI::INT, 0);
+
+	if (mpiRank == 0) {
+		for (int i = 1; i < allData.size(); i++) {
+			if (allData[i - 1] > allData[i]) {
+				cout << mpiRank << ": Sorting failed!" << endl;
+				return;
+			}
+		}
+
+		cout << mpiRank << ": Sorting complete!" << endl;
+	}
 }
 
 int main(int argc, char *argv[]) {
@@ -99,18 +97,15 @@ int main(int argc, char *argv[]) {
 	chrono::high_resolution_clock::time_point start = chrono::high_resolution_clock::now();
 	COMM_WORLD.Barrier();
 
-	vector<int> result = sorter.sort(data);
+	vector<int> result;
+	sorter.sort(data, result);
 
 	COMM_WORLD.Barrier();
 	chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
 
-	cout << "Sorting took " << chrono::duration_cast<chrono::microseconds>(end - start).count() << "ms" << endl;
+	cout << "Sorting took " << chrono::duration_cast<chrono::microseconds>(end - start).count() << "us" << endl;
 
-	if (checkSorting(result)) {
-		cout << mpiRank << ": Sorting complete!" << endl;
-	} else {
-		cout << mpiRank << ": Sorting failed!" << endl;
-	}
+	checkSorted(result);
 
 	DEBUG("Finalizing")
 	Finalize();
