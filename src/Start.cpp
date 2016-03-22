@@ -11,6 +11,8 @@
 #include "mpi.h"
 #include "SampleSort.h"
 #include "Random.h"
+#include "GatherSortSamplesStrategy.h"
+#include "SortSamplesStrategy.h"
 
 #include <math.h>
 #include <iostream>
@@ -89,7 +91,8 @@ int main(int argc, char *argv[]) {
 	mpiSize = COMM_WORLD.Get_size();
 	mpiRank = COMM_WORLD.Get_rank();
 
-	SampleSort sorter(mpiRank, mpiSize, true, 5);
+	GatherSortSamplesStrategy sortSamplesStrategy;
+	SampleSort sorter(mpiRank, mpiSize, true, 5, sortSamplesStrategy);
 	vector<int> data(TEST_DATA_SIZE);
 	generateRandomData(data);
 

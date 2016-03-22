@@ -9,6 +9,7 @@
 #define SAMPLESORT_H_
 
 #include "Debug.h"
+#include "SortSamplesStrategy.h"
 
 #include <vector>
 
@@ -21,8 +22,10 @@ private:
 	const bool presortLocalData;
 	const int sampleSize;
 
+	SortSamplesStrategy &sortSamplesStrategy;
+
 public:
-	SampleSort(int mpiRank, int mpiSize, bool presortLocalData, int sampleSize);
+	SampleSort(int mpiRank, int mpiSize, bool presortLocalData, int sampleSize, SortSamplesStrategy &sortSamplesStrategy);
 	virtual ~SampleSort();
 
 

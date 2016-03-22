@@ -20,11 +20,12 @@ using namespace MPI;
 
 const int CUSTOM_MPI_ROOT = 0;
 
-SampleSort::SampleSort(int mpiRank, int mpiSize, bool presortLocalData, int sampleSize) :
+SampleSort::SampleSort(int mpiRank, int mpiSize, bool presortLocalData, int sampleSize, SortSamplesStrategy &sortSamplesStrategy) :
 		presortLocalData(presortLocalData),
 		sampleSize(sampleSize),
 		mpiRank(mpiRank),
-		mpiSize(mpiSize)
+		mpiSize(mpiSize),
+		sortSamplesStrategy(sortSamplesStrategy)
 {
 }
 
@@ -38,7 +39,7 @@ void SampleSort::sort(vector<int> &data, vector<int> &sortedData) {
 	vector<int> splitter(mpiSize - 1);
 
 	drawSamples(data, samples);
-	sortSamples(samples, splitter);
+	sortSamplesStrategy.sortSamples(samples, splitter, CUSTOM_MPI_ROOT, sampleSize);
 	partitionData(data, splitter, positions);
 	shareData(data, positions, sortedData);
 	sortData(sortedData);
@@ -53,37 +54,6 @@ void SampleSort::drawSamples(vector<int> &data, vector<int> &samples) {
 		samples.push_back(data[randomValue]);
 		DEBUGV(randomValue)
 	}
-}
-
-void SampleSort::sortSamples(vector<int> &samples, vector<int> &splitter) {
-	DEBUG("Enter sortSamples");
-
-	int *receiveBuffer = 0;
-	int receiveSize = sampleSize * mpiSize;
-
-	if (mpiRank == CUSTOM_MPI_ROOT) {
-		receiveBuffer = new int[receiveSize];
-
-		for (int i = 0; i < receiveSize; i++) {
-			receiveBuffer[i] = 0;
-		}
-	}
-
-	COMM_WORLD.Gather(samples.data(), samples.size(), MPI::INT, receiveBuffer, samples.size(), MPI::INT, CUSTOM_MPI_ROOT);
-
-	if (mpiRank == CUSTOM_MPI_ROOT) {
-		std::sort(receiveBuffer, receiveBuffer + receiveSize);
-
-		for (int i = 0; i < mpiSize - 1; i++) {
-			splitter[i] = receiveBuffer[(i + 1) * sampleSize - 1];
-		}
-
-		delete receiveBuffer;
-	}
-
-	COMM_WORLD.Bcast(splitter.data(), mpiSize - 1, MPI::INT, CUSTOM_MPI_ROOT);
-
-	DEBUG("Exit sortSamples");
 }
 
 void SampleSort::partitionData(vector<int> &data, vector<int> &splitter, vector<int> &positions) {
