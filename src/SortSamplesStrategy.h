@@ -8,14 +8,15 @@
 #ifndef SORTSAMPLESSTRATEGY_H_
 #define SORTSAMPLESSTRATEGY_H_
 
+#include "SampleSortParams.h"
+
 #include <vector>
-#include "mpi.h"
 
 using namespace std;
 
 class SortSamplesStrategy {
 public:
-	virtual void sortSamples(vector<int> &samples, vector<int> &splitters, int mpiRoot, int sampleSize) = 0;
+	virtual void sortSamples(vector<int> &samples, vector<int> &splitters, SampleSortParams &sampleSortParams) = 0;
 	virtual ~SortSamplesStrategy() {}
 };
 

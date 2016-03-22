@@ -6,6 +6,7 @@
  */
 
 #include "GatherSortSamplesStrategy.h"
+#include "mpi.h"
 
 #include <algorithm>
 
@@ -18,14 +19,11 @@ GatherSortSamplesStrategy::GatherSortSamplesStrategy() : SortSamplesStrategy() {
 }
 
 void GatherSortSamplesStrategy::sortSamples(vector<int> &samples,
-		vector<int> &splitters, int mpiRoot, int sampleSize) {
-	const int mpiRank = COMM_WORLD.Get_rank();
-	const int mpiSize = COMM_WORLD.Get_size();
-
+		vector<int> &splitters, SampleSortParams &p) {
 	int *receiveBuffer = 0;
-	int receiveSize = sampleSize * mpiSize;
+	int receiveSize = p.sampleSize * p.mpiSize;
 
-	if (mpiRank == mpiRoot) {
+	if (p.isMPIRoot()) {
 		receiveBuffer = new int[receiveSize];
 		for (int i = 0; i < receiveSize; i++) {
 			receiveBuffer[i] = 0;
@@ -33,16 +31,16 @@ void GatherSortSamplesStrategy::sortSamples(vector<int> &samples,
 	}
 
 	COMM_WORLD.Gather(samples.data(), samples.size(), MPI::INT, receiveBuffer,
-			samples.size(), MPI::INT, mpiRoot);
-	if (mpiRank == mpiRoot) {
+			samples.size(), MPI::INT, p.mpiRoot);
+	if (p.isMPIRoot()) {
 		std::sort(receiveBuffer, receiveBuffer + receiveSize);
-		for (int i = 0; i < mpiSize - 1; i++) {
-			splitters[i] = receiveBuffer[(i + 1) * sampleSize - 1];
+		for (int i = 0; i < p.mpiSize - 1; i++) {
+			splitters[i] = receiveBuffer[(i + 1) * p.sampleSize - 1];
 		}
 		delete receiveBuffer;
 	}
 
-	COMM_WORLD.Bcast(splitters.data(), mpiSize - 1, MPI::INT, mpiRoot);
+	COMM_WORLD.Bcast(splitters.data(), p.mpiSize - 1, MPI::INT, p.mpiRoot);
 }
 
 GatherSortSamplesStrategy::~GatherSortSamplesStrategy() {

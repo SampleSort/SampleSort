@@ -13,7 +13,7 @@
 class GatherSortSamplesStrategy : public SortSamplesStrategy {
 public:
 	GatherSortSamplesStrategy();
-	void sortSamples(vector<int> &samples, vector<int> &splitters, int mpiRoot, int sampleSize);
+	void sortSamples(vector<int> &samples, vector<int> &splitters, SampleSortParams &sampleSortParams);
 	virtual ~GatherSortSamplesStrategy();
 };
 

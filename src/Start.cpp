@@ -13,6 +13,7 @@
 #include "Random.h"
 #include "GatherSortSamplesStrategy.h"
 #include "SortSamplesStrategy.h"
+#include "SampleSortParams.h"
 
 #include <math.h>
 #include <iostream>
@@ -32,11 +33,8 @@ const int SEND_LOWEST_TAG = 0;
 const int SEND_HIGHEST_TAG = 1;
 
 
-int mpiSize;
-int mpiRank;
 
-
-void generateRandomData(vector<int> &data) {
+void generateRandomData(vector<int> &data, int mpiSize) {
 	default_random_engine randomGenerator(getSeed());
 	uniform_int_distribution<int> randomDistribution(-data.size() * mpiSize, data.size() * mpiSize);
 
@@ -46,8 +44,8 @@ void generateRandomData(vector<int> &data) {
 	}
 }
 
-void checkSorted(vector<int> &array) {
-	DEBUG("Enter checkSorting");
+void checkSorted(vector<int> &array, int mpiRank, int mpiSize) {
+	cout << mpiRank << ": Enter checkSorting" << endl;
 
 	int size = array.size();
 	vector<int> gatheredSizes;
@@ -88,13 +86,14 @@ void checkSorted(vector<int> &array) {
 
 int main(int argc, char *argv[]) {
 	Init(argc, argv);
-	mpiSize = COMM_WORLD.Get_size();
-	mpiRank = COMM_WORLD.Get_rank();
+	int mpiSize = COMM_WORLD.Get_size();
+	int mpiRank = COMM_WORLD.Get_rank();
 
+	SampleSortParams params(mpiRank, mpiSize, 0, true, 5);
 	GatherSortSamplesStrategy sortSamplesStrategy;
-	SampleSort sorter(mpiRank, mpiSize, true, 5, sortSamplesStrategy);
+	SampleSort sorter(params, sortSamplesStrategy);
 	vector<int> data(TEST_DATA_SIZE);
-	generateRandomData(data);
+	generateRandomData(data, mpiSize);
 
 	COMM_WORLD.Barrier();
 	chrono::high_resolution_clock::time_point start = chrono::high_resolution_clock::now();
@@ -108,8 +107,8 @@ int main(int argc, char *argv[]) {
 
 	cout << "Sorting took " << chrono::duration_cast<chrono::microseconds>(end - start).count() << "us" << endl;
 
-	checkSorted(result);
+	checkSorted(result, mpiRank, mpiSize);
 
-	DEBUG("Finalizing")
+	cout << mpiRank << ": Finalizing" << endl;
 	Finalize();
 }

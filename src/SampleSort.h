@@ -10,6 +10,7 @@
 
 #include "Debug.h"
 #include "SortSamplesStrategy.h"
+#include "SampleSortParams.h"
 
 #include <vector>
 
@@ -17,15 +18,13 @@ using namespace std;
 
 class SampleSort {
 private:
-	const int mpiRank;
-	const int mpiSize;
-	const bool presortLocalData;
-	const int sampleSize;
+	SampleSortParams p;
 
 	SortSamplesStrategy &sortSamplesStrategy;
 
 public:
-	SampleSort(int mpiRank, int mpiSize, bool presortLocalData, int sampleSize, SortSamplesStrategy &sortSamplesStrategy);
+	SampleSort(SampleSort &sampleSort);
+	SampleSort(SampleSortParams &p, SortSamplesStrategy &sortSamplesStrategy);
 	virtual ~SampleSort();
 
 

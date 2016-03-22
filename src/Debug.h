@@ -4,8 +4,8 @@
 #define DO_DEBUG
 
 #ifdef DO_DEBUG
-	#define DEBUG(x) cout << mpiRank << ": " << x << endl;
-	#define DEBUGV(x) cout << mpiRank << ": " << #x << " = " << x << endl;
+	#define DEBUG(x) cout << p.mpiRank << ": " << x << endl;
+	#define DEBUGV(x) cout << p.mpiRank << ": " << #x << " = " << x << endl;
 #else
 	#define DEBUG(x) ;
 	#define DEBUGV(x) ;
