@@ -13,8 +13,11 @@
 using namespace std;
 
 class RecursiveSortSamplesStrategy : public SortSamplesStrategy {
+private:
+	const int threshold;
+
 public:
-	RecursiveSortSamplesStrategy();
+	RecursiveSortSamplesStrategy(int threshold);
 	void sortSamples(vector<int> &samples, vector<int> &splitters, SampleSortParams &sampleSortParams);
 	virtual ~RecursiveSortSamplesStrategy();
 };

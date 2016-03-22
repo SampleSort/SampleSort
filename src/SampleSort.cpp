@@ -13,6 +13,7 @@
 #include <iomanip>
 #include <random>
 #include <iterator>
+#include <cmath>
 
 using namespace std;
 using namespace MPI;
@@ -30,6 +31,15 @@ SampleSort::SampleSort(SampleSortParams &p,
 
 }
 
+void SampleSort::determineSampleSize(int dataSize) {
+	if (p.isMPIRoot()) {
+		p.sampleSize = min((int) log2(dataSize * p.mpiSize) / p.mpiSize,
+				dataSize);
+	}
+
+	COMM_WORLD.Bcast(&(p.sampleSize), 1, MPI::INT, p.mpiRoot);
+}
+
 void SampleSort::sort(vector<int> &data, vector<int> &sortedData) {
 	if (p.presortLocalData) {
 		std::sort(data.begin(), data.end());
@@ -39,6 +49,7 @@ void SampleSort::sort(vector<int> &data, vector<int> &sortedData) {
 	vector<int> positions;
 	vector<int> splitter(p.mpiSize - 1);
 
+	determineSampleSize(data.size());
 	drawSamples(data, samples);
 	sortSamplesStrategy.sortSamples(samples, splitter, p);
 	partitionData(data, splitter, positions);
@@ -61,7 +72,7 @@ void SampleSort::partitionData(vector<int> &data, vector<int> &splitter,
 		vector<int> &positions) {
 	DEBUG("Enter partitionData");
 
-	// BINARY SEARCH FOR SPLITTER POSITIONS
+// BINARY SEARCH FOR SPLITTER POSITIONS
 	vector<int>::iterator first = data.begin();
 
 	positions.push_back(0);
@@ -104,7 +115,7 @@ void SampleSort::shareData(vector<int> &data, vector<int> &positions,
 		recPositions[i] = recBucketSizes[i - 1] + recPositions[i - 1];
 	}
 
-	// Has calculated how much data from which node is received at which position in our receiver array.
+// Has calculated how much data from which node is received at which position in our receiver array.
 
 	COMM_WORLD.Alltoallv(data.data(), bucketSizes, positions.data(), MPI::INT,
 			receivedData.data(), recBucketSizes, recPositions, MPI::INT);
@@ -120,6 +131,6 @@ void SampleSort::sortData(vector<int> &receivedData) {
 }
 
 SampleSort::~SampleSort() {
-	// TODO Auto-generated destructor stub
+// TODO Auto-generated destructor stub
 }
 

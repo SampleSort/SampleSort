@@ -14,9 +14,10 @@ public:
 	const int mpiSize;
 	const int mpiRoot;
 	const bool presortLocalData;
-	const int sampleSize;
+	int sampleSize;
 
 public:
+	SampleSortParams(SampleSortParams &sampleSortParams);
 	SampleSortParams(int mpiRank, int mpiSize, int mpiRoot, bool presortLocalData, int sampleSize);
 	virtual ~SampleSortParams();
 

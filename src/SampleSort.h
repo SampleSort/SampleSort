@@ -27,6 +27,7 @@ public:
 	SampleSort(SampleSortParams &p, SortSamplesStrategy &sortSamplesStrategy);
 	virtual ~SampleSort();
 
+	void determineSampleSize(int dataSize);
 
 	void sort(vector<int> &data, vector<int> &sortedData);
 	void drawSamples(vector<int> &data, vector<int> &samples);
