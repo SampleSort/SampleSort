@@ -48,8 +48,7 @@ public:
 		COMM_WORLD.Bcast(splitters.data(), (p.mpiSize - 1) * sizeof(T), MPI::BYTE, p.mpiRoot);
 	}
 
-	virtual ~GatherSortSamplesStrategy() {
-	}
+	virtual ~GatherSortSamplesStrategy() {}
 };
 
 #endif /* GATHERSORTSAMPLESSTRATEGY_H_ */

@@ -93,7 +93,7 @@ unsigned long runTest(int recursiveThreshold) {
 
 	SampleSortParams params(mpiRank, mpiSize, 0, true, -1);
 	// GatherSortSamplesStrategy sortSamplesStrategy;
-	RecursiveSortSamplesStrategy sortSamplesStrategy(recursiveThreshold);
+	RecursiveSortSamplesStrategy<int> sortSamplesStrategy(recursiveThreshold);
 	SampleSort<int> sorter(params, sortSamplesStrategy);
 	vector<int> data(TEST_DATA_SIZE);
 	generateRandomData(data, mpiSize);
