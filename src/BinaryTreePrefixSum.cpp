@@ -30,13 +30,9 @@ int BinaryTreePrefixSum::prefix_sum(int local_value) {
 
 	int l = 0;
 	int r = 0;
-	int left_child_rank = left_child(index) - 1;
-	int right_child_rank = right_child(index) - 1;
-	int parent_rank = parent(index) - 1;
-
-	if (index == 8) {
-		cout << left_child_rank << "  " << right_child_rank << "  " << parent_rank << endl;
-	}
+	int left_child_rank = has_left_child(index) ? left_child(index) - 1 : -1;
+	int right_child_rank = has_right_child(index) ? right_child(index) - 1 : -1;
+	int parent_rank = has_parent(index) ? parent(index) - 1 : -1;
 
 	if (has_left_child(index)) {
 		DEBUG("Receiving from left child");
