@@ -16,8 +16,9 @@ using namespace std;
 int main(int argc, char *argv[]) {
 	Init(argc, argv);
 	const int mpiSize = COMM_WORLD.Get_size();
+	const int mpiRank = COMM_WORLD.Get_rank();
 
-	if (COMM_WORLD.Get_rank() == 0) {
+	if (mpiRank == 0) {
 		BinaryTreePrefixSum btps;
 
 		for (int i = 1; i <= mpiSize; i++) {
@@ -41,6 +42,19 @@ int main(int argc, char *argv[]) {
 				DEBUGV(p);
 			}
 		}
+	}
+
+	COMM_WORLD.Barrier();
+
+	BinaryTreePrefixSum btps;
+	const int input = mpiRank + 1;
+	const int sum = btps.prefix_sum(input);
+	const int expected = input * (input - 1) / 2;
+
+	if (sum == expected) {
+		cout << mpiRank << ": Sum is correct." << endl;
+	} else {
+		cout << mpiRank << ": Sum is WRONG!!1!1!!!!111!! It was " << sum << " but should be " << expected << endl;
 	}
 
 	Finalize();
