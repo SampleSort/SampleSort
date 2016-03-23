@@ -94,7 +94,7 @@ unsigned long runTest(int recursiveThreshold) {
 	SampleSortParams params(mpiRank, mpiSize, 0, true, -1);
 	// GatherSortSamplesStrategy sortSamplesStrategy;
 	RecursiveSortSamplesStrategy sortSamplesStrategy(recursiveThreshold);
-	SampleSort sorter(params, sortSamplesStrategy);
+	SampleSort<int> sorter(params, sortSamplesStrategy);
 	vector<int> data(TEST_DATA_SIZE);
 	generateRandomData(data, mpiSize);
 
@@ -118,7 +118,7 @@ unsigned long runTest(int recursiveThreshold) {
 	time /= chrono::high_resolution_clock::period::type::den;
 
 	if (mpiRank == 0) {
-		// cout << "Sorting took " << (time * 1e6) << "us" << endl;
+		//cout << "Sorting took " << (time * 1e6) << "us" << endl;
 	}
 
 	return time * 1e6;

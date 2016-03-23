@@ -28,7 +28,7 @@ void RecursiveSortSamplesStrategy::sortSamples(vector<int> &samples,
 		gsss.sortSamples(samples, splitters, p);
 	} else {
 		SampleSortParams ssp(p);
-		SampleSort recurse(ssp, *this);
+		SampleSort<int> recurse(ssp, *this);
 		vector<int> sortedSamples;
 		recurse.sort(samples, sortedSamples);
 

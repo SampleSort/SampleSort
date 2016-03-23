@@ -20,35 +20,39 @@ using namespace MPI;
 
 const int CUSTOM_MPI_ROOT = 0;
 
-SampleSort::SampleSort(SampleSort &sampleSort) :
+template<typename T>
+SampleSort<T>::SampleSort(SampleSort &sampleSort) :
 		p(sampleSort.p), sortSamplesStrategy(sampleSort.sortSamplesStrategy) {
 
 }
 
-SampleSort::SampleSort(SampleSortParams &p,
+template<typename T>
+SampleSort<T>::SampleSort(SampleSortParams &p,
 		SortSamplesStrategy &sortSamplesStrategy) :
 		p(p), sortSamplesStrategy(sortSamplesStrategy) {
 
 }
 
-void SampleSort::determineSampleSize(int dataSize) {
+template<typename T>
+void SampleSort<T>::determineSampleSize(int dataSize) {
 	if (p.isMPIRoot()) {
 		p.sampleSize = min((int) log2(dataSize * p.mpiSize) * 10,
 				dataSize / 2);
 	}
 
-	COMM_WORLD.Bcast(&(p.sampleSize), 1, MPI::INT, p.mpiRoot);
+	COMM_WORLD.Bcast(&(p.sampleSize), sizeof(T), MPI::BYTE, p.mpiRoot);
 	INFOR(p.sampleSize);
 }
 
-void SampleSort::sort(vector<int> &data, vector<int> &sortedData) {
+template<typename T>
+void SampleSort<T>::sort(vector<T> &data, vector<T> &sortedData) {
 	if (p.presortLocalData) {
 		std::sort(data.begin(), data.end());
 	}
 
-	vector<int> samples;
+	vector<T> samples;
 	vector<int> positions;
-	vector<int> splitter(p.mpiSize - 1);
+	vector<T> splitter(p.mpiSize - 1);
 
 	determineSampleSize(data.size());
 	DEBUGV(p.sampleSize);
@@ -59,7 +63,8 @@ void SampleSort::sort(vector<int> &data, vector<int> &sortedData) {
 	sortData(sortedData);
 }
 
-void SampleSort::drawSamples(vector<int> &data, vector<int> &samples) {
+template<typename T>
+void SampleSort<T>::drawSamples(vector<T> &data, vector<T> &samples) {
 	default_random_engine randomGenerator(getSeed() * (p.mpiRank + 5));
 	uniform_int_distribution<int> randomDistribution(0, data.size() - 1);
 
@@ -70,12 +75,13 @@ void SampleSort::drawSamples(vector<int> &data, vector<int> &samples) {
 	}
 }
 
-void SampleSort::partitionData(vector<int> &data, vector<int> &splitter,
+template<typename T>
+void SampleSort<T>::partitionData(vector<T> &data, vector<T> &splitter,
 		vector<int> &positions) {
 	DEBUG("Enter partitionData");
 
 // BINARY SEARCH FOR SPLITTER POSITIONS
-	vector<int>::iterator first = data.begin();
+	typename vector<T>::iterator first = data.begin();
 
 	positions.push_back(0);
 	for (int i = 0; i < p.mpiSize - 1; i++) {
@@ -86,8 +92,9 @@ void SampleSort::partitionData(vector<int> &data, vector<int> &splitter,
 	DEBUG("Exit partitionData");
 }
 
-void SampleSort::shareData(vector<int> &data, vector<int> &positions,
-		vector<int> &receivedData) {
+template<typename T>
+void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
+		vector<T> &receivedData) {
 	DEBUG("Enter shareData");
 	DEBUGV(positions.size())
 
@@ -96,10 +103,10 @@ void SampleSort::shareData(vector<int> &data, vector<int> &positions,
 
 	// Calculate our bucket sizes
 	for (int i = 0; i < p.mpiSize - 1; i++) {
-		bucketSizes[i] = positions[i + 1] - positions[i];
+		bucketSizes[i] = sizeof(T) * (positions[i + 1] - positions[i]);
 	}
 
-	bucketSizes[p.mpiSize - 1] = data.size() - positions[p.mpiSize - 1];
+	bucketSizes[p.mpiSize - 1] = sizeof(T) * (data.size() - positions[p.mpiSize - 1]);
 
 	// Exchange bucket sizes. Receive how many elements we receive from every other PE.
 	COMM_WORLD.Alltoall(bucketSizes, 1, MPI::INT, recBucketSizes, 1, MPI::INT);
@@ -112,7 +119,7 @@ void SampleSort::shareData(vector<int> &data, vector<int> &positions,
 	}
 
 	DEBUGV(receiveSize)
-	receivedData.resize(receiveSize);
+	receivedData.resize(receiveSize / sizeof(T));
 	int *recPositions = new int[p.mpiSize];
 
 	// Calculate the offsets in the received data buffer for every PE.
@@ -123,8 +130,8 @@ void SampleSort::shareData(vector<int> &data, vector<int> &positions,
 
 	// Has calculated how much data from which node is received at which position in our receiver array.
 
-	COMM_WORLD.Alltoallv(data.data(), bucketSizes, positions.data(), MPI::INT,
-			receivedData.data(), recBucketSizes, recPositions, MPI::INT);
+	COMM_WORLD.Alltoallv(data.data(), bucketSizes, positions.data(), MPI::BYTE,
+			receivedData.data(), recBucketSizes, recPositions, MPI::BYTE);
 
 	delete bucketSizes;
 	delete recBucketSizes;
@@ -132,11 +139,13 @@ void SampleSort::shareData(vector<int> &data, vector<int> &positions,
 	DEBUG("Exit shareData");
 }
 
-void SampleSort::sortData(vector<int> &receivedData) {
+template<typename T>
+void SampleSort<T>::sortData(vector<T> &receivedData) {
 	std::sort(receivedData.begin(), receivedData.end());
 }
 
-SampleSort::~SampleSort() {
+template<typename T>
+SampleSort<T>::~SampleSort() {
 // TODO Auto-generated destructor stub
 }
 

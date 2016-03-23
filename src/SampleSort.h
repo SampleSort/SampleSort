@@ -16,6 +16,7 @@
 
 using namespace std;
 
+template <typename T>
 class SampleSort {
 private:
 	SampleSortParams p;
@@ -29,12 +30,20 @@ public:
 
 	void determineSampleSize(int dataSize);
 
-	void sort(vector<int> &data, vector<int> &sortedData);
-	void drawSamples(vector<int> &data, vector<int> &samples);
-	void sortSamples(vector<int> &samples, vector<int> &splitter);
-	void partitionData(vector<int> &data, vector<int> &splitter, vector<int> &positions);
-	void shareData(vector<int> &data, vector<int> &positions, vector<int> &receivedData);
-	void sortData(vector<int> &receivedData);
+	void sort(vector<T> &data, vector<T> &sortedData);
+	void drawSamples(vector<T> &data, vector<T> &samples);
+	void sortSamples(vector<T> &samples, vector<T> &splitter);
+	void partitionData(vector<T> &data, vector<T> &splitter, vector<int> &positions);
+	void shareData(vector<T> &data, vector<int> &positions, vector<T> &receivedData);
+	void sortData(vector<T> &receivedData);
 };
+
+template class SampleSort<int>;
+template class SampleSort<long>;
+
+
+template class SampleSort<float>;
+template class SampleSort<double>;
+template class SampleSort<long double>;
 
 #endif /* SAMPLESORT_H_ */
