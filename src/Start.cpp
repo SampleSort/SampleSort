@@ -12,6 +12,7 @@
 #include "SampleSort.h"
 #include "Random.h"
 #include "GatherSortSamplesStrategy.h"
+#include "RecursiveSortSamplesStrategy.h"
 #include "SortSamplesStrategy.h"
 #include "SampleSortParams.h"
 

@@ -10,6 +10,7 @@
 #include "BinaryTreePrefixSum.h"
 #include "mpi.h"
 #include "SampleSort.h"
+#include "Debug.h"
 #include <exception>
 
 using namespace std;
@@ -30,8 +31,11 @@ void RecursiveSortSamplesStrategy::sortSamples(vector<int> &samples,
 		vector<int> sortedSamples;
 		recurse.sort(samples, sortedSamples);
 
+		DEBUG("=======================================================================");
+
 		BinaryTreePrefixSum prefixSum;
 		const int offset = prefixSum.prefix_sum(sortedSamples.size());
+		DEBUG("Finished prefix sum");
 		const int overlap = offset % p.sampleSize;
 		const int splitterOffset = offset / p.sampleSize; // TODO !!!
 		vector<int> localSplitters(sortedSamples.size() / p.sampleSize + 1);
@@ -44,9 +48,11 @@ void RecursiveSortSamplesStrategy::sortSamples(vector<int> &samples,
 		int *bucketSizes = new int[p.mpiSize];
 		const int numberOfLocalSplitters = localSplitters.size();
 
+		DEBUG("Pregather");
 		// Exchange bucket sizes. Receive how many elements we receive from every other PE.
 		COMM_WORLD.Allgather(&numberOfLocalSplitters, 1, MPI::INT, bucketSizes,
 				1, MPI::INT);
+		DEBUG("Postgather");
 
 		splitters.resize(p.mpiSize - 1);
 		int *recPositions = new int[p.mpiSize];
@@ -59,10 +65,12 @@ void RecursiveSortSamplesStrategy::sortSamples(vector<int> &samples,
 
 		// Has calculated how much data from which node is received at which position in our receiver array.
 
+		DEBUG("Preallgather");
 		// Filling the splitters array.
 		COMM_WORLD.Allgatherv(localSplitters.data(), localSplitters.size(),
 				MPI::INT, splitters.data(), bucketSizes, recPositions,
 				MPI::INT);
+		DEBUG("Postallgather");
 
 		delete bucketSizes;
 		delete recPositions;
