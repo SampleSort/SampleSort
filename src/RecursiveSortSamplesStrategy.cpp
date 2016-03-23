@@ -24,7 +24,7 @@ RecursiveSortSamplesStrategy::RecursiveSortSamplesStrategy(int threshold) :
 void RecursiveSortSamplesStrategy::sortSamples(vector<int> &samples,
 		vector<int> &splitters, SampleSortParams &p) {
 	if (samples.size() <= threshold) {
-		GatherSortSamplesStrategy gsss;
+		GatherSortSamplesStrategy<int> gsss;
 		gsss.sortSamples(samples, splitters, p);
 	} else {
 		SampleSortParams ssp(p);

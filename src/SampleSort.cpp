@@ -28,7 +28,7 @@ SampleSort<T>::SampleSort(SampleSort &sampleSort) :
 
 template<typename T>
 SampleSort<T>::SampleSort(SampleSortParams &p,
-		SortSamplesStrategy &sortSamplesStrategy) :
+		SortSamplesStrategy<T> &sortSamplesStrategy) :
 		p(p), sortSamplesStrategy(sortSamplesStrategy) {
 
 }

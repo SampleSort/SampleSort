@@ -12,7 +12,7 @@
 
 using namespace std;
 
-class RecursiveSortSamplesStrategy : public SortSamplesStrategy {
+class RecursiveSortSamplesStrategy : public SortSamplesStrategy<int> {
 private:
 	const int threshold;
 

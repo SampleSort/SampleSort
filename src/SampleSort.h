@@ -21,11 +21,11 @@ class SampleSort {
 private:
 	SampleSortParams p;
 
-	SortSamplesStrategy &sortSamplesStrategy;
+	SortSamplesStrategy<T> &sortSamplesStrategy;
 
 public:
 	SampleSort(SampleSort &sampleSort);
-	SampleSort(SampleSortParams &p, SortSamplesStrategy &sortSamplesStrategy);
+	SampleSort(SampleSortParams &p, SortSamplesStrategy<T> &sortSamplesStrategy);
 	virtual ~SampleSort();
 
 	void determineSampleSize(int dataSize);

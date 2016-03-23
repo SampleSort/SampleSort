@@ -3,7 +3,7 @@ CXX = mpic++
 OPTFLAGS = -O3
 CXXFLAGS = $(OPTFLAGS) -g -std=c++11
 INCLUDEPATH = ~/include/
-_OBJECTS = Start.o SampleSort.o Random.o GatherSortSamplesStrategy.o RecursiveSortSamplesStrategy.o SampleSortParams.o BinaryTreePrefixSum.o
+_OBJECTS = Start.o SampleSort.o Random.o RecursiveSortSamplesStrategy.o SampleSortParams.o BinaryTreePrefixSum.o
 OBJECTS = $(patsubst %,build/%,$(_OBJECTS))
 
 _TPOBJECTS = BinaryTreePrefixSum.o TestPrefix.o

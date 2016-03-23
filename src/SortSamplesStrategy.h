@@ -14,9 +14,10 @@
 
 using namespace std;
 
+template<typename T>
 class SortSamplesStrategy {
 public:
-	virtual void sortSamples(vector<int> &samples, vector<int> &splitters, SampleSortParams &sampleSortParams) = 0;
+	virtual void sortSamples(vector<T> &samples, vector<T> &splitters, SampleSortParams &sampleSortParams) = 0;
 	virtual ~SortSamplesStrategy() {}
 };
 
