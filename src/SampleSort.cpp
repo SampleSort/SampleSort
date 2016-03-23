@@ -92,16 +92,19 @@ void SampleSort::shareData(vector<int> &data, vector<int> &positions,
 	int *bucketSizes = new int[p.mpiSize];
 	int *recBucketSizes = new int[p.mpiSize];
 
+	// Calculate our bucket sizes
 	for (int i = 0; i < p.mpiSize - 1; i++) {
 		bucketSizes[i] = positions[i + 1] - positions[i];
 	}
 
 	bucketSizes[p.mpiSize - 1] = data.size() - positions[p.mpiSize - 1];
 
+	// Exchange bucket sizes. Receive how many elements we receive from every other PE.
 	COMM_WORLD.Alltoall(bucketSizes, 1, MPI::INT, recBucketSizes, 1, MPI::INT);
 
 	int receiveSize = 0;
 
+	// Count how many elements we receive from all other PEs added up.
 	for (int i = 0; i < p.mpiSize; i++) {
 		receiveSize += recBucketSizes[i];
 	}
@@ -110,12 +113,13 @@ void SampleSort::shareData(vector<int> &data, vector<int> &positions,
 	receivedData.resize(receiveSize);
 	int *recPositions = new int[p.mpiSize];
 
+	// Calculate the offsets in the received data buffer for every PE.
 	recPositions[0] = 0;
 	for (int i = 1; i < p.mpiSize; i++) {
 		recPositions[i] = recBucketSizes[i - 1] + recPositions[i - 1];
 	}
 
-// Has calculated how much data from which node is received at which position in our receiver array.
+	// Has calculated how much data from which node is received at which position in our receiver array.
 
 	COMM_WORLD.Alltoallv(data.data(), bucketSizes, positions.data(), MPI::INT,
 			receivedData.data(), recBucketSizes, recPositions, MPI::INT);
