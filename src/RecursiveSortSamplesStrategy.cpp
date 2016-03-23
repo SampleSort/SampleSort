@@ -12,6 +12,7 @@
 #include "SampleSort.h"
 #include "Debug.h"
 #include <exception>
+#include <cmath>
 
 using namespace std;
 using namespace MPI;
@@ -36,9 +37,13 @@ void RecursiveSortSamplesStrategy::sortSamples(vector<int> &samples,
 		BinaryTreePrefixSum prefixSum;
 		const int offset = prefixSum.prefix_sum(sortedSamples.size());
 		DEBUG("Finished prefix sum");
+
+
+
 		const int overlap = offset % p.sampleSize;
 		const int splitterOffset = offset / p.sampleSize; // TODO !!!
-		vector<int> localSplitters(sortedSamples.size() / p.sampleSize + 1);
+		vector<int> localSplitters;
+		localSplitters.reserve(sortedSamples.size() / p.sampleSize + 1);
 
 		for (int j = p.sampleSize - overlap - 1; j < sortedSamples.size(); j +=
 				p.sampleSize) {
@@ -47,6 +52,7 @@ void RecursiveSortSamplesStrategy::sortSamples(vector<int> &samples,
 
 		int *bucketSizes = new int[p.mpiSize];
 		const int numberOfLocalSplitters = localSplitters.size();
+		int splitterno = numberOfLocalSplitters;
 
 		DEBUG("Pregather");
 		// Exchange bucket sizes. Receive how many elements we receive from every other PE.
@@ -54,7 +60,7 @@ void RecursiveSortSamplesStrategy::sortSamples(vector<int> &samples,
 				1, MPI::INT);
 		DEBUG("Postgather");
 
-		splitters.resize(p.mpiSize - 1);
+		splitters.resize(max(p.mpiSize - 1, 1));
 		int *recPositions = new int[p.mpiSize];
 
 		// Calculate the offsets in the received data buffer for every PE.
@@ -65,6 +71,8 @@ void RecursiveSortSamplesStrategy::sortSamples(vector<int> &samples,
 
 		// Has calculated how much data from which node is received at which position in our receiver array.
 
+		DEBUGV(splitters.size());
+		DEBUGV(splitters.capacity());
 		DEBUG("Preallgather");
 		// Filling the splitters array.
 		COMM_WORLD.Allgatherv(localSplitters.data(), localSplitters.size(),

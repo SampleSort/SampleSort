@@ -6,9 +6,10 @@
  */
 
 #include "BinaryTreePrefixSum.h"
+#include "Debug.h"
 
 #define TAG 4
-#define DEBUG(x) cout << index << ": " << x << endl;
+
 
 BinaryTreePrefixSum::BinaryTreePrefixSum() {
 	// TODO Auto-generated constructor stub
