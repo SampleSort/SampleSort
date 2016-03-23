@@ -38,9 +38,17 @@ public:
 	void sortData(vector<T> &receivedData);
 };
 
+template class SampleSort<char>;
+template class SampleSort<short>;
 template class SampleSort<int>;
 template class SampleSort<long>;
+template class SampleSort<long long>;
 
+template class SampleSort<unsigned char>;
+template class SampleSort<unsigned short>;
+template class SampleSort<unsigned int>;
+template class SampleSort<unsigned long>;
+template class SampleSort<unsigned long long>;
 
 template class SampleSort<float>;
 template class SampleSort<double>;
