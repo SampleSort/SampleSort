@@ -50,6 +50,7 @@ void SampleSort::sort(vector<int> &data, vector<int> &sortedData) {
 	vector<int> splitter(p.mpiSize - 1);
 
 	determineSampleSize(data.size());
+	DEBUGV(p.sampleSize);
 	drawSamples(data, samples);
 	sortSamplesStrategy.sortSamples(samples, splitter, p);
 	partitionData(data, splitter, positions);

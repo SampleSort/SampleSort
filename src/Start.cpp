@@ -89,8 +89,9 @@ int main(int argc, char *argv[]) {
 	int mpiSize = COMM_WORLD.Get_size();
 	int mpiRank = COMM_WORLD.Get_rank();
 
-	SampleSortParams params(mpiRank, mpiSize, 0, true, 5);
-	GatherSortSamplesStrategy sortSamplesStrategy;
+	SampleSortParams params(mpiRank, mpiSize, 0, true, -1);
+	// GatherSortSamplesStrategy sortSamplesStrategy;
+	RecursiveSortSamplesStrategy sortSamplesStrategy(1);
 	SampleSort sorter(params, sortSamplesStrategy);
 	vector<int> data(TEST_DATA_SIZE);
 	generateRandomData(data, mpiSize);

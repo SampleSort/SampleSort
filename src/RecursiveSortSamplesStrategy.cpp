@@ -7,6 +7,7 @@
 
 #include "RecursiveSortSamplesStrategy.h"
 #include "GatherSortSamplesStrategy.h"
+#include "BinaryTreePrefixSum.h"
 #include "mpi.h"
 #include "SampleSort.h"
 #include <exception>
@@ -29,13 +30,42 @@ void RecursiveSortSamplesStrategy::sortSamples(vector<int> &samples,
 		vector<int> sortedSamples;
 		recurse.sort(samples, sortedSamples);
 
-		if (sortedSamples.empty()) {
-			throw runtime_error("Cannot draw sample, sorted array is empty!");
+		BinaryTreePrefixSum prefixSum;
+		const int offset = prefixSum.prefix_sum(sortedSamples.size());
+		const int overlap = offset % p.sampleSize;
+		const int splitterOffset = offset / p.sampleSize; // TODO !!!
+		vector<int> localSplitters(sortedSamples.size() / p.sampleSize + 1);
+
+		for (int j = p.sampleSize - overlap - 1; j < sortedSamples.size(); j +=
+				p.sampleSize) {
+			localSplitters.push_back(sortedSamples[j]);
 		}
 
-		int splitter = sortedSamples[sortedSamples.size() - 1];
+		int *bucketSizes = new int[p.mpiSize];
+		const int numberOfLocalSplitters = localSplitters.size();
 
-		// TODO !!!
+		// Exchange bucket sizes. Receive how many elements we receive from every other PE.
+		COMM_WORLD.Allgather(&numberOfLocalSplitters, 1, MPI::INT, bucketSizes,
+				1, MPI::INT);
+
+		splitters.resize(p.mpiSize - 1);
+		int *recPositions = new int[p.mpiSize];
+
+		// Calculate the offsets in the received data buffer for every PE.
+		recPositions[0] = 0;
+		for (int i = 1; i < p.mpiSize; i++) {
+			recPositions[i] = bucketSizes[i - 1] + recPositions[i - 1];
+		}
+
+		// Has calculated how much data from which node is received at which position in our receiver array.
+
+		// Filling the splitters array.
+		COMM_WORLD.Allgatherv(localSplitters.data(), localSplitters.size(),
+				MPI::INT, splitters.data(), bucketSizes, recPositions,
+				MPI::INT);
+
+		delete bucketSizes;
+		delete recPositions;
 	}
 }
 
