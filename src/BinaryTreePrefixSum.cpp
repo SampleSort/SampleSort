@@ -19,11 +19,10 @@ BinaryTreePrefixSum::BinaryTreePrefixSum() {
 
 }
 
+int prefix_sum(int local_value) {
+
+}
+
 BinaryTreePrefixSum::~BinaryTreePrefixSum() {
 	// TODO Auto-generated destructor stub
 }
-
-
-int BinaryTreePrefixSum::left_child(int index)
-int BinaryTreePrefixSum::right_child(int index)
-int BinaryTreePrefixSum::parent(int index)

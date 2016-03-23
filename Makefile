@@ -6,14 +6,22 @@ INCLUDEPATH = ~/include/
 _OBJECTS = Start.o SampleSort.o Random.o GatherSortSamplesStrategy.o RecursiveSortSamplesStrategy.o SampleSortParams.o BinaryTreePrefixSum.o
 OBJECTS = $(patsubst %,build/%,$(_OBJECTS))
 
+_TPOBJECTS = BinaryTreePrefixSum.o TestPrefix.o
+TPOBJECTS = $(patsubst %,build/%,$(_TPOBJECTS))
+
+ALLOBJECTS = $(OBJECTS) $(TPOBJECTS)
+
 .PHONY: all
 
-all: samplesort
+all: samplesort testprefix
 
 samplesort: $(OBJECTS)
 	export PATH=$$PATH:~/bin/; $(CXX) $(OBJECTS) -o SampleSort
+	
+testprefix: $(TPOBJECTS)
+	export PATH=$$PATH:~/bin/; $(CXX) $(TPOBJECTS) -o TestPrefix
 
-$(OBJECTS): build/%.o: src/%.cpp build/%.d
+$(ALLOBJECTS): build/%.o: src/%.cpp build/%.d
 	export PATH=$$PATH:~/bin/; $(CXX) -c $(CXXFLAGS) -I $(INCLUDEPATH) $< -o $@
 
 build/%.d: src/%.cpp
@@ -21,4 +29,5 @@ build/%.d: src/%.cpp
 
 clean:
 	rm -f SampleSort
+	rm -f TestPrefix
 	rm -f build/*
