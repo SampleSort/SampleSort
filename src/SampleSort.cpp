@@ -33,11 +33,12 @@ SampleSort::SampleSort(SampleSortParams &p,
 
 void SampleSort::determineSampleSize(int dataSize) {
 	if (p.isMPIRoot()) {
-		p.sampleSize = min((int) log2(dataSize * p.mpiSize) / p.mpiSize,
-				dataSize);
+		p.sampleSize = min((int) log2(dataSize * p.mpiSize) * 10,
+				dataSize / 2);
 	}
 
 	COMM_WORLD.Bcast(&(p.sampleSize), 1, MPI::INT, p.mpiRoot);
+	INFOR(p.sampleSize);
 }
 
 void SampleSort::sort(vector<int> &data, vector<int> &sortedData) {
