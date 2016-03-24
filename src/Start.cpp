@@ -203,7 +203,7 @@ unsigned long runTests(const int warmUp, const int runCount,
 	unsigned long median = times[times.size() / 2];
 
 	if (mpiRank == 0) {
-		cout << "Sorting time median = " << median << "us" << endl;
+		//cout << "Sorting time median = " << median << "us" << endl;
 	}
 
 	return median;
@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
 		cout << " ====== TESTING STD::SORT  ====== " << endl;
 	}
 
-	stdMedian = runTests(5, 100, 50, runStdSort);
+	stdMedian = runTests(5, 100, -1, runStdSort);
 
 	if (mpiRank == 0) {
 		cout << " ====== TESTING SAMPLESORT ====== " << endl;
