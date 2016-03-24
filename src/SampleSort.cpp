@@ -167,6 +167,12 @@ void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 		receivePositions[i] = recBucketSizes[i - 1] + receivePositions[i - 1];
 	}
 
+	cout << p.mpiRank << ": receivePositions = ";
+	for (int i = 0; i < p.mpiSize; i++) {
+		cout << receivePositions[i] << " ";
+	}
+	cout << endl;
+
 	// Has calculated how much data from which node is received at which position in our receiver array.
 
 	COMM_WORLD.Alltoallv(data.data(), bucketSizes, positions.data(), MPI::BYTE,
