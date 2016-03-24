@@ -4,7 +4,7 @@
  Author      : Sebastian Schmidt, Lars Gottesbüren
  Version     :
  Copyright   : MIT License
- Description : Compute Pi in MPI C++
+ Description : Test the SampleSort algorithm smoothly and thoroughly.
  ============================================================================
  */
 
@@ -15,6 +15,7 @@
 #include "RecursiveSortSamplesStrategy.h"
 #include "SortSamplesStrategy.h"
 #include "SampleSortParams.h"
+#include "Debug.h"
 
 #include <math.h>
 #include <iostream>
@@ -40,8 +41,9 @@ void generateRandomData(vector<int> &data, int mpiSize) {
 	}
 }
 
-template< typename T >
+template<typename T>
 bool checkSorted(vector<T> &array, int mpiRank, int mpiSize) {
+	DEBUG("Checking for sortation");
 	int size = array.size() * sizeof(T);
 	vector<int> gatheredSizes;
 
@@ -49,9 +51,11 @@ bool checkSorted(vector<T> &array, int mpiRank, int mpiSize) {
 		gatheredSizes.resize(mpiSize);
 	}
 
+	DEBUG("Pregather");
 	COMM_WORLD.Gather(&size, 1, MPI::INT, gatheredSizes.data(), 1, MPI::INT, 0);
+	DEBUG("Postgather");
 
-	vector<int> allData;
+	vector<T> allData;
 	vector<int> offsets;
 
 	if (mpiRank == 0) {
@@ -65,8 +69,8 @@ bool checkSorted(vector<T> &array, int mpiRank, int mpiSize) {
 		allData.resize(offsets[mpiSize - 1] + gatheredSizes[mpiSize - 1]);
 	}
 
-	COMM_WORLD.Gatherv(array.data(), array.size() * sizeof(T), MPI::BYTE, allData.data(),
-			gatheredSizes.data(), offsets.data(), MPI::BYTE, 0);
+	COMM_WORLD.Gatherv(array.data(), array.size() * sizeof(T), MPI::BYTE,
+			allData.data(), gatheredSizes.data(), offsets.data(), MPI::BYTE, 0);
 
 	if (mpiRank == 0) {
 		for (int i = 1; i < allData.size(); i++) {
@@ -93,9 +97,9 @@ unsigned long runTest(int recursiveThreshold) {
 	}
 
 	SampleSortParams params(mpiRank, mpiSize, 0, true, -1);
-	// GatherSortSamplesStrategy sortSamplesStrategy;
-	RecursiveSortSamplesStrategy<int> sortSamplesStrategy(recursiveThreshold);
-	SampleSort<int> sorter(params, sortSamplesStrategy);
+		// GatherSortSamplesStrategy sortSamplesStrategy;
+		RecursiveSortSamplesStrategy<int> sortSamplesStrategy(recursiveThreshold);
+		SampleSort<int> sorter(params, sortSamplesStrategy);
 	vector<int> data(TEST_DATA_SIZE);
 	generateRandomData(data, mpiSize);
 
@@ -125,13 +129,34 @@ unsigned long runTest(int recursiveThreshold) {
 	return time * 1e6;
 }
 
-void runTests(int runCount, int recursiveThreshold) {
+bool testAllEqualValue(int recursive_threshold, double value) {
+	vector<double> data(TEST_DATA_SIZE);
+	for (vector<double>::iterator it = data.begin(); it != data.end(); it++) {
+		*it = value;
+	}
+	int mpiSize = COMM_WORLD.Get_size();
+	int mpiRank = COMM_WORLD.Get_rank();
+
+	SampleSortParams params(mpiRank, mpiSize, 0, true, -1);
+	RecursiveSortSamplesStrategy<double> sortSamplesStrategy(
+			recursive_threshold);
+	SampleSort<double> sorter(params, sortSamplesStrategy);
+	vector<double> results;
+	sorter.sort(data, results);
+
+	DEBUG("Data sorted");
+	COMM_WORLD.Barrier();
+	return checkSorted(results, mpiRank, mpiSize);
+}
+
+void runTests(int runCount, int recursiveThreshold,
+		unsigned long test(int)) {
 	int mpiSize = COMM_WORLD.Get_size();
 	int mpiRank = COMM_WORLD.Get_rank();
 	vector<unsigned long> times;
 
 	for (int i = 0; i < runCount; i++) {
-		times.push_back(runTest(recursiveThreshold));
+		times.push_back(test(recursiveThreshold));
 	}
 
 	sort(times.begin(), times.end());
@@ -142,29 +167,14 @@ void runTests(int runCount, int recursiveThreshold) {
 	}
 }
 
-bool testAllEqualValue( int recursive_threshold, double value ) {
-	vector<double> data( TEST_DATA_SIZE );
-	for ( vector<double>::iterator it = data.begin(); it != data.end(); it++ ) {
-		*it = value;
-	}
-	int mpiSize = COMM_WORLD.Get_size();
-	int mpiRank = COMM_WORLD.Get_rank();
-
-	SampleSortParams params( mpiRank, mpiSize, 0, true, -1 );
-	RecursiveSortSamplesStrategy<double> sortSamplesStrategy( recursive_threshold );
-	SampleSort<double> sorter( params, sortSamplesStrategy );
-	vector<double> results;
-	sorter.sort( data, results );
-	return checkSorted( results, mpiRank, mpiSize );
-	
-}
-
 int main(int argc, char *argv[]) {
 	Init(argc, argv);
 	int mpiSize = COMM_WORLD.Get_size();
 	int mpiRank = COMM_WORLD.Get_rank();
 
-	runTests(10, 50);
+	testAllEqualValue(50, 456.345634756);
+
+	//runTests(10, 50, runTest);
 
 	Finalize();
 }

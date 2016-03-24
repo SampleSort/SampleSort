@@ -42,8 +42,9 @@ public:
 			vector<T> sortedSamples;
 			recurse.sort(samples, sortedSamples);
 
-			DEBUG(
-					"=======================================================================");
+			COMM_WORLD.Barrier();
+			DEBUG("=======================================================================");
+			COMM_WORLD.Barrier();
 
 			BinaryTreePrefixSum prefixSum;
 			const int offset = prefixSum.prefix_sum(sortedSamples.size());
@@ -79,8 +80,9 @@ public:
 
 			// Has calculated how much data from which node is received at which position in our receiver array.
 
-			DEBUGV(splitters.size());DEBUGV(splitters.capacity());DEBUG(
-					"Preallgather");
+			DEBUGV(splitters.size());
+			DEBUGV(splitters.capacity());
+			DEBUG("Preallgather");
 			// Filling the splitters array.
 			COMM_WORLD.Allgatherv(localSplitters.data(), localSplitters.size() * sizeof(T),
 					MPI::BYTE, splitters.data(), bucketSizes, recPositions,
@@ -90,6 +92,8 @@ public:
 			delete bucketSizes;
 			delete recPositions;
 		}
+
+		DEBUG("Exit recursive sample sorting");
 	}
 
 	virtual ~RecursiveSortSamplesStrategy() {}

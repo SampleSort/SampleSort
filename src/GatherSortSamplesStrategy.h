@@ -10,6 +10,7 @@
 
 #include "SortSamplesStrategy.h"
 #include "mpi.h"
+#include "Debug.h"
 
 #include <algorithm>
 
@@ -25,27 +26,31 @@ public:
 
 	void sortSamples(vector<T> &samples, vector<T> &splitters,
 			SampleSortParams &p) {
-		int *receiveBuffer = 0;
+		DEBUG("Sorting samples with gathering");
 		int receiveSize = p.sampleSize * p.mpiSize;
+		vector<T> receiveBuffer;
 
 		if (p.isMPIRoot()) {
-			receiveBuffer = new int[receiveSize];
-			for (int i = 0; i < receiveSize; i++) {
-				receiveBuffer[i] = 0;
-			}
+			receiveBuffer.resize(receiveSize);
 		}
 
+		DEBUG("Gathering");
 		COMM_WORLD.Gather(samples.data(), samples.size() * sizeof(T), MPI::BYTE,
-				receiveBuffer, samples.size() * sizeof(T), MPI::BYTE, p.mpiRoot);
+				receiveBuffer.data(), samples.size() * sizeof(T), MPI::BYTE, p.mpiRoot);
+		DEBUG("Gathered");
+
 		if (p.isMPIRoot()) {
-			std::sort(receiveBuffer, receiveBuffer + receiveSize);
+			std::sort(receiveBuffer.begin(), receiveBuffer.end());
 			for (int i = 0; i < p.mpiSize - 1; i++) {
 				splitters[i] = receiveBuffer[(i + 1) * p.sampleSize - 1];
 			}
-			delete receiveBuffer;
 		}
 
+		DEBUGV(sizeof(T));
+		DEBUGV(splitters.size());
+		DEBUG("Bcasting");
 		COMM_WORLD.Bcast(splitters.data(), (p.mpiSize - 1) * sizeof(T), MPI::BYTE, p.mpiRoot);
+		DEBUG("Bcasted");
 	}
 
 	virtual ~GatherSortSamplesStrategy() {}

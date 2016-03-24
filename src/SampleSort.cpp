@@ -55,12 +55,18 @@ void SampleSort<T>::sort(vector<T> &data, vector<T> &sortedData) {
 	vector<T> splitter(p.mpiSize - 1);
 
 	determineSampleSize(data.size());
-	DEBUGV(p.sampleSize);
+	//DEBUGV(p.sampleSize);
 	drawSamples(data, samples);
+	//DEBUG("Drew samples");
 	sortSamplesStrategy.sortSamples(samples, splitter, p);
+	//DEBUG("Sorted samples");
 	partitionData(data, splitter, positions);
+	DEBUG("Partitioned data");
 	shareData(data, positions, sortedData);
+	//DEBUG("Shared data");
 	sortData(sortedData);
+	DEBUG("Sorted data");
+	DEBUGV(sortedData.size());
 }
 
 template<typename T>
@@ -71,15 +77,12 @@ void SampleSort<T>::drawSamples(vector<T> &data, vector<T> &samples) {
 	while (samples.size() < p.sampleSize) {
 		int randomValue = randomDistribution(randomGenerator);
 		samples.push_back(data[randomValue]);
-		DEBUGV(randomValue)
 	}
 }
 
 template<typename T>
 void SampleSort<T>::partitionData(vector<T> &data, vector<T> &splitter,
 		vector<int> &positions) {
-	DEBUG("Enter partitionData");
-
 // BINARY SEARCH FOR SPLITTER POSITIONS
 	typename vector<T>::iterator first = data.begin();
 
@@ -88,16 +91,11 @@ void SampleSort<T>::partitionData(vector<T> &data, vector<T> &splitter,
 		first = lower_bound(first, data.end(), splitter[i]);
 		positions.push_back(first - data.begin());
 	}
-
-	DEBUG("Exit partitionData");
 }
 
 template<typename T>
 void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 		vector<T> &receivedData) {
-	DEBUG("Enter shareData");
-	DEBUGV(positions.size())
-
 	int *bucketSizes = new int[p.mpiSize];
 	int *recBucketSizes = new int[p.mpiSize];
 
@@ -118,8 +116,12 @@ void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 		receiveSize += recBucketSizes[i];
 	}
 
-	DEBUGV(receiveSize)
 	receivedData.resize(receiveSize / sizeof(T));
+
+	if (receiveSize / sizeof(T) == 0) {
+		receivedData.reserve(1);
+	}
+
 	int *recPositions = new int[p.mpiSize];
 
 	// Calculate the offsets in the received data buffer for every PE.
@@ -136,7 +138,6 @@ void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 	delete bucketSizes;
 	delete recBucketSizes;
 	delete recPositions;
-	DEBUG("Exit shareData");
 }
 
 template<typename T>
