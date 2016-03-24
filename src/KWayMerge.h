@@ -35,7 +35,7 @@ public:
 			}
 		}
 
-		int result_index = 0;
+		int result_index = result_size - 1;
 
 		//Take out the highest among all elements and add it to the result list
 		while (!pq.empty()) {
@@ -46,7 +46,7 @@ public:
 			vector<T> *cur_list = lh.second;
 
 			//insert into result
-			result_to_fill[result_index] = cur;
+			result_to_fill[result_index--] = cur;
 
 			//chop off the highest element from the current list
 			cur_list->pop_back();
@@ -57,7 +57,5 @@ public:
 				pq.push(lh);
 			}
 		}
-
-		//reverse(result_to_fill.begin(), result_to_fill.end());
 	}
 };

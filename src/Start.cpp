@@ -19,6 +19,7 @@
 #include "LogSampleSizeStrategy.h"
 #include "RootSampleSizeStrategy.h"
 #include "Debug.h"
+#include "KWayMerge.h"
 
 #include <math.h>
 #include <iostream>
@@ -76,6 +77,8 @@ bool checkSorted(vector<T> &array, int mpiRank, int mpiSize) {
 	COMM_WORLD.Gatherv(array.data(), array.size() * sizeof(T), MPI::BYTE,
 			allData.data(), gatheredSizes.data(), offsets.data(), MPI::BYTE, 0);
 
+	DEBUGV(allData.size());
+	cout << "allData = ";
 	for (int i = 0; i < allData.size(); i++) {
 		cout << allData[i] << " ";
 	}
@@ -226,6 +229,7 @@ unsigned long runTests(const int warmUp, const int runCount,
 
 int main(int argc, char *argv[]) {
 	Init(argc, argv);
+
 	int mpiSize = COMM_WORLD.Get_size();
 	int mpiRank = COMM_WORLD.Get_rank();
 
@@ -281,8 +285,10 @@ int main(int argc, char *argv[]) {
 
 			cout << "For threshold =         " << thresholds[i] << endl;
 			cout << "  MPI size =            " << mpiSize << endl;
-			cout << "  local size =          " << concurrentThreadsSupported << endl;
-			cout << "  input size =          " << BENCHMARK_DATA_SIZE * mpiSize << endl;
+			cout << "  local size =          " << concurrentThreadsSupported
+					<< endl;
+			cout << "  input size =          " << BENCHMARK_DATA_SIZE * mpiSize
+					<< endl;
 			cout << "  repetitions =         " << repetitions << endl;
 			cout << "  median runtime =      " << ourMedians[i] << "us" << endl;
 			cout << "  speedUp =             " << speedUp << endl;

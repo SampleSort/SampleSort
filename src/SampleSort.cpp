@@ -117,6 +117,12 @@ void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 	int *bucketSizes = new int[p.mpiSize];
 	int *recBucketSizes = new int[p.mpiSize];
 
+	cout << p.mpiRank << ": sendData = ";
+	for (int i = 0; i < data.size(); i++) {
+		cout << data[i] << " ";
+	}
+	cout << endl;
+
 	// Calculate our bucket sizes
 	for (int i = 0; i < p.mpiSize - 1; i++) {
 		bucketSizes[i] = sizeof(T) * (positions[i + 1] - positions[i]);
@@ -125,8 +131,20 @@ void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 	bucketSizes[p.mpiSize - 1] = sizeof(T)
 			* (data.size() - positions[p.mpiSize - 1]);
 
+	cout << p.mpiRank << ": bucketSizes = ";
+	for (int i = 0; i < p.mpiSize; i++) {
+		cout << bucketSizes[i] << " ";
+	}
+	cout << endl;
+
 	// Exchange bucket sizes. Receive how many elements we receive from every other PE.
 	COMM_WORLD.Alltoall(bucketSizes, 1, MPI::INT, recBucketSizes, 1, MPI::INT);
+
+	cout << p.mpiRank << ": recBucketSizes = ";
+	for (int i = 0; i < p.mpiSize; i++) {
+		cout << recBucketSizes[i] << " ";
+	}
+	cout << endl;
 
 	int receiveSize = 0;
 
@@ -152,14 +170,32 @@ void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 	// Has calculated how much data from which node is received at which position in our receiver array.
 
 	COMM_WORLD.Alltoallv(data.data(), bucketSizes, positions.data(), MPI::BYTE,
-			receivedData.data(), recBucketSizes, receivePositions.data(), MPI::BYTE);
+			receivedData.data(), recBucketSizes, receivePositions.data(),
+			MPI::BYTE);
 
 	delete bucketSizes;
 	delete recBucketSizes;
 }
 
 template<typename T>
-void SampleSort<T>::sortData(vector<T> &receivedData, vector<int> &receivePositions) {
+void SampleSort<T>::sortData(vector<T> &receivedData,
+		vector<int> &receivePositions) {
+	cout << p.mpiRank << ": receivedData = ";
+	for (int i = 0; i < receivedData.size(); i++) {
+		cout << receivedData[i] << " ";
+	}
+	cout << endl;
+
+	cout << p.mpiRank << ": receivePositions = ";
+	for (int i = 0; i < receivePositions.size(); i++) {
+		cout << receivePositions[i] / sizeof(T) << " ";
+
+		if (receivePositions[i] % sizeof(T) != 0) {
+			throw runtime_error("Receive position wrong");
+		}
+	}
+	cout << endl;
+
 	if (p.presortLocalData) {
 		vector<vector<T>> sortedLists;
 		sortedLists.reserve(receivePositions.size());
@@ -167,14 +203,26 @@ void SampleSort<T>::sortData(vector<T> &receivedData, vector<int> &receivePositi
 
 		for (int i = 0; i < receivePositions.size() - 1; i++) {
 			vector<T> sortedList;
-			const int length = (receivePositions[i + 1] - receivePositions[i]) / sizeof(T);
+			const int length = (receivePositions[i + 1] - receivePositions[i])
+					/ sizeof(T);
 
 			cout << "length = " << length << endl;
 
 			sortedList.reserve(length);
 
 			for (int j = 0; j < length; j++) {
-				sortedList.push_back(receivedData[j + receivePositions[i]]);
+				T before = 0;
+				if (j > 0) {
+					before = sortedList.back();
+				}
+
+				sortedList.push_back(
+						receivedData[j + receivePositions[i] / sizeof(T)]);
+				T after = sortedList.back();
+
+				if (j > 0 && before > after) {
+					throw runtime_error("List is not sorted");
+				}
 			}
 
 			sortedLists.push_back(sortedList);
