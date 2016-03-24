@@ -11,7 +11,7 @@
 	#define DEBUGV(x) ;
 #endif /* DO_DEBUG */
 
-//#define DO_INFO
+#define DO_INFO
 
 #ifdef DO_INFO
 	#define INFO(x) cout << COMM_WORLD.Get_rank() << ": " << x << endl;

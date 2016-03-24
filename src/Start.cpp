@@ -15,6 +15,9 @@
 #include "RecursiveSortSamplesStrategy.h"
 #include "SortSamplesStrategy.h"
 #include "SampleSortParams.h"
+#include "SampleSizeStrategy.h"
+#include "LogSampleSizeStrategy.h"
+#include "RootSampleSizeStrategy.h"
 #include "Debug.h"
 
 #include <math.h>
@@ -92,7 +95,9 @@ unsigned long runTest(int recursiveThreshold) {
 	int mpiSize = COMM_WORLD.Get_size();
 	int mpiRank = COMM_WORLD.Get_rank();
 
-	SampleSortParams params(mpiRank, mpiSize, 0, true, -1);
+	//LogSampleSizeStrategy sss(2);
+	RootSampleSizeStrategy sss(3, 1);
+	SampleSortParams params(mpiRank, mpiSize, 0, true, -1, sss);
 	// GatherSortSamplesStrategy sortSamplesStrategy;
 	RecursiveSortSamplesStrategy<int> sortSamplesStrategy(recursiveThreshold);
 	SampleSort<int> sorter(params, sortSamplesStrategy);
@@ -104,7 +109,7 @@ unsigned long runTest(int recursiveThreshold) {
 			chrono::high_resolution_clock::now().time_since_epoch().count();
 
 	vector<int> result;
-	sorter.sort(data, result);
+	sorter.sort(data, result, BENCHMARK_DATA_SIZE * mpiSize);
 
 	unsigned long end =
 			chrono::high_resolution_clock::now().time_since_epoch().count();
@@ -166,12 +171,13 @@ bool testAllEqualValue(int recursive_threshold, double value) {
 		*it = value;
 	}
 
-	SampleSortParams params(mpiRank, mpiSize, 0, true, -1);
+	LogSampleSizeStrategy sss(10);
+	SampleSortParams params(mpiRank, mpiSize, 0, true, -1, sss);
 	RecursiveSortSamplesStrategy<double> sortSamplesStrategy(
 			recursive_threshold);
 	SampleSort<double> sorter(params, sortSamplesStrategy);
 	vector<double> results;
-	sorter.sort(data, results);
+	sorter.sort(data, results, TEST_DATA_SIZE * mpiSize);
 	return checkSorted(results, mpiRank, mpiSize);
 }
 
@@ -223,12 +229,12 @@ int main(int argc, char *argv[]) {
 	vector<unsigned long> ourMedians;
 	unsigned long stdMedian;
 
-	thresholds.push_back(10);
-	thresholds.push_back(20);
+	//thresholds.push_back(10);
+	//thresholds.push_back(20);
 	thresholds.push_back(40);
 	thresholds.push_back(80);
 	thresholds.push_back(160);
-	thresholds.push_back(320);
+	//thresholds.push_back(320);
 	thresholds.push_back(1 << 30);
 
 	COMM_WORLD.Barrier();
@@ -252,12 +258,12 @@ int main(int argc, char *argv[]) {
 		ourMedians.push_back(runTests(10, 100, thresholds[i], runTest));
 	}
 
-	for (int i = 0; i < thresholds.size(); i++) {
-		double speedUp = stdMedian / (double) ourMedians[i];
-		double localEfficiency = speedUp / concurrentThreadsSupported;
-		double globalEfficiency = speedUp / mpiSize;
+	if (mpiRank == 0) {
+		for (int i = 0; i < thresholds.size(); i++) {
+			double speedUp = stdMedian / (double) ourMedians[i];
+			double localEfficiency = speedUp / concurrentThreadsSupported;
+			double globalEfficiency = speedUp / mpiSize;
 
-		if (mpiRank == 0) {
 			cout << "For threshold =         " << thresholds[i] << endl;
 			cout << "  speedUp =             " << speedUp << endl;
 			cout << "  efficiency (local) =  " << localEfficiency << endl;

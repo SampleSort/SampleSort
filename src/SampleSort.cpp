@@ -34,18 +34,7 @@ SampleSort<T>::SampleSort(SampleSortParams &p,
 }
 
 template<typename T>
-void SampleSort<T>::determineSampleSize(int dataSize) {
-	if (p.isMPIRoot()) {
-		p.sampleSize = min((int) log2(dataSize * p.mpiSize) * 10,
-				dataSize / 2);
-	}
-
-	COMM_WORLD.Bcast(&(p.sampleSize), sizeof(T), MPI::BYTE, p.mpiRoot);
-	INFOR(p.sampleSize);
-}
-
-template<typename T>
-void SampleSort<T>::sort(vector<T> &data, vector<T> &sortedData) {
+void SampleSort<T>::sort(vector<T> &data, vector<T> &sortedData, int globalDataSize) {
 	if (p.presortLocalData) {
 		std::sort(data.begin(), data.end());
 	}
@@ -54,7 +43,9 @@ void SampleSort<T>::sort(vector<T> &data, vector<T> &sortedData) {
 	vector<int> positions;
 	vector<T> splitter(p.mpiSize - 1);
 
-	determineSampleSize(data.size());
+	p.sampleSize = min(p.sampleSizeStrategy.sampleSize(globalDataSize), (int) data.size() / 2);
+	INFOR(p.sampleSize);
+
 	//DEBUGV(p.sampleSize);
 	drawSamples(data, samples);
 	//DEBUG("Drew samples");

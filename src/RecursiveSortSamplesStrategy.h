@@ -37,10 +37,11 @@ public:
 			GatherSortSamplesStrategy<T> gsss;
 			gsss.sortSamples(samples, splitters, p);
 		} else {
+			const int globalSampleCount = p.sampleSize * p.mpiSize;
 			SampleSortParams ssp(p);
 			SampleSort<T> recurse(ssp, *this);
 			vector<T> sortedSamples;
-			recurse.sort(samples, sortedSamples);
+			recurse.sort(samples, sortedSamples, globalSampleCount);
 
 			DEBUG("=======================================================================");
 
@@ -48,7 +49,6 @@ public:
 			const int offset = prefixSum.prefix_sum(sortedSamples.size());
 			DEBUG("Finished prefix sum");
 
-			const int globalSampleCount = p.sampleSize * p.mpiSize;
 			const int overlap = offset % p.sampleSize;
 			const int splitterOffset = offset / p.sampleSize;
 			vector<int> localSplitters;

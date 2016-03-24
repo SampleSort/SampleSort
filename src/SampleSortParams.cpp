@@ -8,14 +8,16 @@
 #include "SampleSortParams.h"
 
 SampleSortParams::SampleSortParams(int mpiRank, int mpiSize, int mpiRoot,
-		bool presortLocalData, int sampleSize) :
+		bool presortLocalData, int sampleSize, SampleSizeStrategy &sampleSizeStrategy) :
 		presortLocalData(presortLocalData), sampleSize(sampleSize), mpiRank(
-				mpiRank), mpiSize(mpiSize), mpiRoot(mpiRoot) {
+				mpiRank), mpiSize(mpiSize), mpiRoot(mpiRoot), sampleSizeStrategy(
+				sampleSizeStrategy) {
 }
 
 SampleSortParams::SampleSortParams(SampleSortParams &p) :
 		presortLocalData(p.presortLocalData), sampleSize(p.sampleSize), mpiRank(
-				p.mpiRank), mpiSize(p.mpiSize), mpiRoot(p.mpiRoot) {
+				p.mpiRank), mpiSize(p.mpiSize), mpiRoot(p.mpiRoot), sampleSizeStrategy(
+				p.sampleSizeStrategy) {
 
 }
 
