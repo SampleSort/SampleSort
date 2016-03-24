@@ -32,7 +32,7 @@
 using namespace std;
 using namespace MPI;
 
-const int BENCHMARK_DATA_SIZE = 5000000;
+const int BENCHMARK_DATA_SIZE = 50000;
 const int TEST_DATA_SIZE = 50;
 
 void generateRandomData(vector<int> &data, int minMax) {
@@ -228,10 +228,16 @@ int main(int argc, char *argv[]) {
 	vector<int> thresholds;
 	vector<unsigned long> ourMedians;
 	unsigned long stdMedian;
+	const int repetitions = 500;
 
+	thresholds.push_back(0);
+	//thresholds.push_back(1);
+	thresholds.push_back(2);
+	//thresholds.push_back(3);
+	//thresholds.push_back(6);
 	//thresholds.push_back(10);
 	//thresholds.push_back(20);
-	thresholds.push_back(40);
+	//thresholds.push_back(40);
 	//thresholds.push_back(80);
 	//thresholds.push_back(160);
 	//thresholds.push_back(320);
@@ -243,7 +249,7 @@ int main(int argc, char *argv[]) {
 		cout << " ====== TESTING STD::SORT  ====== " << endl;
 	}
 
-	stdMedian = runTests(10, 30, -1, runStdSort);
+	stdMedian = runTests(10, repetitions, -1, runStdSort);
 
 	if (mpiRank == 0) {
 		cout << " ====== TESTING SAMPLESORT ====== " << endl;
@@ -255,7 +261,7 @@ int main(int argc, char *argv[]) {
 					<< " ====== " << endl;
 		}
 
-		ourMedians.push_back(runTests(10, 30, thresholds[i], runTest));
+		ourMedians.push_back(runTests(10, repetitions, thresholds[i], runTest));
 	}
 
 	if (mpiRank == 0) {
@@ -265,7 +271,11 @@ int main(int argc, char *argv[]) {
 			double globalEfficiency = speedUp / mpiSize;
 
 			cout << "For threshold =         " << thresholds[i] << endl;
-			cout << "  median runtime =      " << ourMedians[i] << endl;
+			cout << "  MPI size =            " << mpiSize << endl;
+			cout << "  local size =          " << concurrentThreadsSupported << endl;
+			cout << "  input size =          " << BENCHMARK_DATA_SIZE * mpiSize << endl;
+			cout << "  repetitions =         " << repetitions << endl;
+			cout << "  median runtime =      " << ourMedians[i] << "us" << endl;
 			cout << "  speedUp =             " << speedUp << endl;
 			cout << "  efficiency (local) =  " << localEfficiency << endl;
 			cout << "  efficiency (global) = " << globalEfficiency << endl;
@@ -274,4 +284,3 @@ int main(int argc, char *argv[]) {
 
 	Finalize();
 }
-

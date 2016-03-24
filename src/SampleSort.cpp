@@ -46,6 +46,7 @@ void SampleSort<T>::sort(vector<T> &data, vector<T> &sortedData,
 
 	p.sampleSize = min(p.sampleSizeStrategy.sampleSize(globalDataSize),
 			(int) data.size() / 2);
+	p.sampleSize = max(p.sampleSize, 1);
 	INFOR(p.sampleSize);
 
 	//DEBUGV(p.sampleSize);
@@ -160,6 +161,7 @@ template<typename T>
 void SampleSort<T>::sortData(vector<T> &receivedData) {
 	if (p.presortLocalData) {
 		// TODO !!!
+		std::sort(receivedData.begin(), receivedData.end());
 	} else {
 		std::sort(receivedData.begin(), receivedData.end());
 	}
