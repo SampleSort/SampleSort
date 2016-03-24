@@ -233,13 +233,23 @@ int main(int argc, char *argv[]) {
 
 	COMM_WORLD.Barrier();
 
-	cout << " ====== TESTING STD::SORT  ====== " << endl;
+	if (mpiRank == 0) {
+		cout << " ====== TESTING STD::SORT  ====== " << endl;
+	}
+
 	stdMedian = runTests(5, 100, 50, runStdSort);
 
-	cout << " ====== TESTING SAMPLESORT ====== " << endl;
+	if (mpiRank == 0) {
+		cout << " ====== TESTING SAMPLESORT ====== " << endl;
+	}
+
 	for (int i = 0; i < thresholds.size(); i++) {
-		cout << " ====== ROUND " << (i + 1) << "/" << thresholds.size() << " ====== " << endl;
-		ourMedians.push_back(runTests(10, 100, 50, runTest));
+		if (mpiRank == 0) {
+			cout << " ====== ROUND " << (i + 1) << "/" << thresholds.size()
+					<< " ====== " << endl;
+		}
+
+		ourMedians.push_back(runTests(10, 100, thresholds[i], runTest));
 	}
 
 	for (int i = 0; i < thresholds.size(); i++) {
