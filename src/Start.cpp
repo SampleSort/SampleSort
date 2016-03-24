@@ -28,7 +28,7 @@
 using namespace std;
 using namespace MPI;
 
-const int TEST_DATA_SIZE = 500000;
+const int TEST_DATA_SIZE = 5;
 
 void generateRandomData(vector<int> &data, int mpiSize) {
 	default_random_engine randomGenerator(getSeed());
@@ -66,11 +66,17 @@ bool checkSorted(vector<T> &array, int mpiRank, int mpiSize) {
 			offsets[i] = gatheredSizes[i - 1] + offsets[i - 1];
 		}
 
-		allData.resize(offsets[mpiSize - 1] + gatheredSizes[mpiSize - 1]);
+		allData.resize((offsets[mpiSize - 1] + gatheredSizes[mpiSize - 1]) / sizeof(T));
 	}
 
 	COMM_WORLD.Gatherv(array.data(), array.size() * sizeof(T), MPI::BYTE,
 			allData.data(), gatheredSizes.data(), offsets.data(), MPI::BYTE, 0);
+
+	for (int i = 0; i < allData.size(); i++) {
+		cout << allData[i] << " ";
+	}
+	cout << endl;
+	DEBUGV(allData.size());
 
 	if (mpiRank == 0) {
 		for (int i = 1; i < allData.size(); i++) {

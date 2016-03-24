@@ -67,6 +67,12 @@ void SampleSort<T>::sort(vector<T> &data, vector<T> &sortedData) {
 	sortData(sortedData);
 	DEBUG("Sorted data");
 	DEBUGV(sortedData.size());
+	DEBUGV(samples.size());
+	DEBUGV(samples.capacity());
+	DEBUGV(positions.size());
+	DEBUGV(positions.capacity());
+	DEBUGV(splitter.size());
+	DEBUGV(splitter.capacity());
 }
 
 template<typename T>

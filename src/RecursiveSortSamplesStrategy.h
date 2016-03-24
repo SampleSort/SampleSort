@@ -50,18 +50,29 @@ public:
 			const int offset = prefixSum.prefix_sum(sortedSamples.size());
 			DEBUG("Finished prefix sum");
 
+			const int globalSampleCount = p.sampleSize * p.mpiSize;
 			const int overlap = offset % p.sampleSize;
-			const int splitterOffset = offset / p.sampleSize; // TODO !!!
+			const int splitterOffset = offset / p.sampleSize;
 			vector<int> localSplitters;
 			localSplitters.reserve(sortedSamples.size() / p.sampleSize + 1);
+			int limit = sortedSamples.size();
 
-			for (int j = p.sampleSize - overlap - 1; j < sortedSamples.size();
+			// The globally last element is not a splitter!
+			if (offset + limit == globalSampleCount) {
+				limit--;
+			}
+
+			for (int j = p.sampleSize - overlap - 1; j < limit;
 					j += p.sampleSize) {
 				localSplitters.push_back(sortedSamples[j]);
 			}
 
 			int *bucketSizes = new int[p.mpiSize];
 			const int numberOfLocalSplitters = localSplitters.size() * sizeof(T);
+
+			COMM_WORLD.Barrier();
+			DEBUGV(numberOfLocalSplitters);
+			COMM_WORLD.Barrier();
 
 			DEBUG("Pregather");
 			// Exchange bucket sizes. Receive how many elements we receive from every other PE.
@@ -74,14 +85,17 @@ public:
 
 			// Calculate the offsets in the received data buffer for every PE.
 			recPositions[0] = 0;
+			int allBucketsSize = bucketSizes[0];
 			for (int i = 1; i < p.mpiSize; i++) {
 				recPositions[i] = bucketSizes[i - 1] + recPositions[i - 1];
+				allBucketsSize += bucketSizes[i];
 			}
 
 			// Has calculated how much data from which node is received at which position in our receiver array.
 
 			DEBUGV(splitters.size());
 			DEBUGV(splitters.capacity());
+			DEBUGV(allBucketsSize);
 			DEBUG("Preallgather");
 			// Filling the splitters array.
 			COMM_WORLD.Allgatherv(localSplitters.data(), localSplitters.size() * sizeof(T),
