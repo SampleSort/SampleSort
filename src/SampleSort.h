@@ -32,8 +32,8 @@ public:
 	void drawSamples(vector<T> &data, vector<T> &samples);
 	void sortSamples(vector<T> &samples, vector<T> &splitter);
 	virtual void partitionData(vector<T> &data, vector<T> &splitter, vector<int> &positions);
-	void shareData(vector<T> &data, vector<int> &positions, vector<T> &receivedData);
-	virtual void sortData(vector<T> &receivedData);
+	void shareData(vector<T> &data, vector<int> &positions, vector<T> &receivedData, vector<int> &receivePositions);
+	virtual void sortData(vector<T> &receivedData, vector<int> &receivePositions);
 };
 
 template class SampleSort<char>;

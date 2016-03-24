@@ -8,6 +8,7 @@
 #include "mpi.h"
 #include "SampleSort.h"
 #include "Random.h"
+#include "KWayMerge.h"
 
 #include <algorithm>
 #include <iomanip>
@@ -43,6 +44,7 @@ void SampleSort<T>::sort(vector<T> &data, vector<T> &sortedData,
 	vector<T> samples;
 	vector<int> positions;
 	vector<T> splitter(p.mpiSize - 1);
+	vector<int> receivePositions;
 
 	p.sampleSize = min(p.sampleSizeStrategy.sampleSize(globalDataSize),
 			(int) data.size() / 2);
@@ -56,9 +58,9 @@ void SampleSort<T>::sort(vector<T> &data, vector<T> &sortedData,
 	//DEBUG("Sorted samples");
 	partitionData(data, splitter, positions);
 	//DEBUG("Partitioned data");
-	shareData(data, positions, sortedData);
+	shareData(data, positions, sortedData, receivePositions);
 	//DEBUG("Shared data");
-	sortData(sortedData);
+	sortData(sortedData, receivePositions);
 	//DEBUG("Sorted data");
 }
 
@@ -111,7 +113,7 @@ void SampleSort<T>::partitionData(vector<T> &data, vector<T> &splitter,
 
 template<typename T>
 void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
-		vector<T> &receivedData) {
+		vector<T> &receivedData, vector<int> &receivePositions) {
 	int *bucketSizes = new int[p.mpiSize];
 	int *recBucketSizes = new int[p.mpiSize];
 
@@ -139,29 +141,49 @@ void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 		receivedData.reserve(1);
 	}
 
-	int *recPositions = new int[p.mpiSize];
+	receivePositions.resize(p.mpiSize);
 
 	// Calculate the offsets in the received data buffer for every PE.
-	recPositions[0] = 0;
+	receivePositions[0] = 0;
 	for (int i = 1; i < p.mpiSize; i++) {
-		recPositions[i] = recBucketSizes[i - 1] + recPositions[i - 1];
+		receivePositions[i] = recBucketSizes[i - 1] + receivePositions[i - 1];
 	}
 
 	// Has calculated how much data from which node is received at which position in our receiver array.
 
 	COMM_WORLD.Alltoallv(data.data(), bucketSizes, positions.data(), MPI::BYTE,
-			receivedData.data(), recBucketSizes, recPositions, MPI::BYTE);
+			receivedData.data(), recBucketSizes, receivePositions.data(), MPI::BYTE);
 
 	delete bucketSizes;
 	delete recBucketSizes;
-	delete recPositions;
 }
 
 template<typename T>
-void SampleSort<T>::sortData(vector<T> &receivedData) {
+void SampleSort<T>::sortData(vector<T> &receivedData, vector<int> &receivePositions) {
 	if (p.presortLocalData) {
-		// TODO !!!
-		std::sort(receivedData.begin(), receivedData.end());
+		vector<vector<T>> sortedLists;
+		sortedLists.reserve(receivePositions.size());
+		receivePositions.push_back(receivedData.size() * sizeof(T));
+
+		for (int i = 0; i < receivePositions.size() - 1; i++) {
+			vector<T> sortedList;
+			const int length = (receivePositions[i + 1] - receivePositions[i]) / sizeof(T);
+
+			cout << "length = " << length << endl;
+
+			sortedList.reserve(length);
+
+			for (int j = 0; j < length; j++) {
+				sortedList.push_back(receivedData[j + receivePositions[i]]);
+			}
+
+			sortedLists.push_back(sortedList);
+		}
+
+		DEBUG("Doing merge");
+		KWayMerge<T> merger;
+		merger.kway_merge(sortedLists, receivedData);
+		DEBUG("Did merge");
 	} else {
 		std::sort(receivedData.begin(), receivedData.end());
 	}
