@@ -27,8 +27,7 @@ private:
 
 public:
 	RecursiveSortSamplesStrategy(int threshold) :
-			SortSamplesStrategy<T>(),
-			threshold(threshold) {
+			SortSamplesStrategy<T>(), threshold(threshold) {
 	}
 
 	void sortSamples(vector<T> &samples, vector<T> &splitters,
@@ -41,9 +40,13 @@ public:
 			SampleSortParams ssp(p);
 			SampleSort<T> recurse(ssp, *this);
 			vector<T> sortedSamples;
-			recurse.sort(samples, sortedSamples, globalSampleCount);
+			// Give local sample size as global sample size,
+			// to reduce the amount of samples in the recursion steps.
+			// This might be viewed as a hck.
+			recurse.sort(samples, sortedSamples, p.sampleSize);
 
-			DEBUG("=======================================================================");
+			DEBUG(
+					"=======================================================================");
 
 			BinaryTreePrefixSum prefixSum;
 			const int offset = prefixSum.prefix_sum(sortedSamples.size());
@@ -66,7 +69,8 @@ public:
 			}
 
 			int *bucketSizes = new int[p.mpiSize];
-			const int numberOfLocalSplitters = localSplitters.size() * sizeof(T);
+			const int numberOfLocalSplitters = localSplitters.size()
+					* sizeof(T);
 
 			DEBUG("Pregather");
 			// Exchange bucket sizes. Receive how many elements we receive from every other PE.
@@ -89,9 +93,9 @@ public:
 
 			DEBUG("Preallgather");
 			// Filling the splitters array.
-			COMM_WORLD.Allgatherv(localSplitters.data(), localSplitters.size() * sizeof(T),
-					MPI::BYTE, splitters.data(), bucketSizes, recPositions,
-					MPI::BYTE);
+			COMM_WORLD.Allgatherv(localSplitters.data(),
+					localSplitters.size() * sizeof(T), MPI::BYTE,
+					splitters.data(), bucketSizes, recPositions, MPI::BYTE);
 			DEBUG("Postallgather");
 
 			delete bucketSizes;
@@ -101,7 +105,8 @@ public:
 		DEBUG("Exit recursive sample sorting");
 	}
 
-	virtual ~RecursiveSortSamplesStrategy() {}
+	virtual ~RecursiveSortSamplesStrategy() {
+	}
 };
 
 #endif /* RECURSIVESORTSAMPLESSTRATEGY_H_ */

@@ -1,0 +1,17 @@
+For threshold =         40
+  speedUp =             2.04163
+  efficiency (local) =  0.510408
+  efficiency (global) = 0.255204
+For threshold =         80
+  speedUp =             1.99086
+  efficiency (local) =  0.497714
+  efficiency (global) = 0.248857
+For threshold =         160
+  speedUp =             1.02974
+  efficiency (local) =  0.257436
+  efficiency (global) = 0.128718
+For threshold =         1073741824
+  speedUp =             3.30979
+  efficiency (local) =  0.827448
+  efficiency (global) = 0.413724
+
