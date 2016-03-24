@@ -95,8 +95,8 @@ unsigned long runTest(int recursiveThreshold) {
 	int mpiSize = COMM_WORLD.Get_size();
 	int mpiRank = COMM_WORLD.Get_rank();
 
-	//LogSampleSizeStrategy sss(2);
-	RootSampleSizeStrategy sss(3, 1);
+	LogSampleSizeStrategy sss(10);
+	//RootSampleSizeStrategy sss(2, 1);
 	SampleSortParams params(mpiRank, mpiSize, 0, true, -1, sss);
 	// GatherSortSamplesStrategy sortSamplesStrategy;
 	RecursiveSortSamplesStrategy<int> sortSamplesStrategy(recursiveThreshold);
