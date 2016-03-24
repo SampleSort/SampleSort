@@ -2,6 +2,7 @@
 #include <queue>
 #include<tuple>
 #include<exception>
+#include<algorithm>
 
 using namespace std;
 
@@ -49,13 +50,6 @@ class KWayMerge {
             }
         }
         
-        //Finally reverse the result to achieve ascending order
-        T temp;     //swap variable
-        result_size = result_to_fill.size()
-        for ( size_t index = 0; index < result_size / 2; index++ ) {
-            temp = result_to_fill[ index ];
-            result_to_fill[ index ] = result_to_fill[ result_size - index ];
-            result_to_fill[ result_size - index ] = temp;
-        }
+        reverse( result_to_fill.begin(), result_to_fill.end() );
     }
 };
