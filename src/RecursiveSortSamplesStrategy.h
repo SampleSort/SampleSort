@@ -42,9 +42,7 @@ public:
 			vector<T> sortedSamples;
 			recurse.sort(samples, sortedSamples);
 
-			COMM_WORLD.Barrier();
 			DEBUG("=======================================================================");
-			COMM_WORLD.Barrier();
 
 			BinaryTreePrefixSum prefixSum;
 			const int offset = prefixSum.prefix_sum(sortedSamples.size());
@@ -70,10 +68,6 @@ public:
 			int *bucketSizes = new int[p.mpiSize];
 			const int numberOfLocalSplitters = localSplitters.size() * sizeof(T);
 
-			COMM_WORLD.Barrier();
-			DEBUGV(numberOfLocalSplitters);
-			COMM_WORLD.Barrier();
-
 			DEBUG("Pregather");
 			// Exchange bucket sizes. Receive how many elements we receive from every other PE.
 			COMM_WORLD.Allgather(&numberOfLocalSplitters, 1, MPI::INT,
@@ -93,9 +87,6 @@ public:
 
 			// Has calculated how much data from which node is received at which position in our receiver array.
 
-			DEBUGV(splitters.size());
-			DEBUGV(splitters.capacity());
-			DEBUGV(allBucketsSize);
 			DEBUG("Preallgather");
 			// Filling the splitters array.
 			COMM_WORLD.Allgatherv(localSplitters.data(), localSplitters.size() * sizeof(T),

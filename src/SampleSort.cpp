@@ -61,18 +61,11 @@ void SampleSort<T>::sort(vector<T> &data, vector<T> &sortedData) {
 	sortSamplesStrategy.sortSamples(samples, splitter, p);
 	//DEBUG("Sorted samples");
 	partitionData(data, splitter, positions);
-	DEBUG("Partitioned data");
+	//DEBUG("Partitioned data");
 	shareData(data, positions, sortedData);
 	//DEBUG("Shared data");
 	sortData(sortedData);
-	DEBUG("Sorted data");
-	DEBUGV(sortedData.size());
-	DEBUGV(samples.size());
-	DEBUGV(samples.capacity());
-	DEBUGV(positions.size());
-	DEBUGV(positions.capacity());
-	DEBUGV(splitter.size());
-	DEBUGV(splitter.capacity());
+	//DEBUG("Sorted data");
 }
 
 template<typename T>
