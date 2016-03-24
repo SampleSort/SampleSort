@@ -18,7 +18,7 @@ using namespace std;
 
 template <typename T>
 class SampleSort {
-private:
+protected:
 	SampleSortParams p;
 
 	SortSamplesStrategy<T> &sortSamplesStrategy;
@@ -31,9 +31,9 @@ public:
 	void sort(vector<T> &data, vector<T> &sortedData, int globalDataSize);
 	void drawSamples(vector<T> &data, vector<T> &samples);
 	void sortSamples(vector<T> &samples, vector<T> &splitter);
-	void partitionData(vector<T> &data, vector<T> &splitter, vector<int> &positions);
+	virtual void partitionData(vector<T> &data, vector<T> &splitter, vector<int> &positions);
 	void shareData(vector<T> &data, vector<int> &positions, vector<T> &receivedData);
-	void sortData(vector<T> &receivedData);
+	virtual void sortData(vector<T> &receivedData);
 };
 
 template class SampleSort<char>;

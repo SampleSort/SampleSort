@@ -32,7 +32,7 @@
 using namespace std;
 using namespace MPI;
 
-const int BENCHMARK_DATA_SIZE = 500000;
+const int BENCHMARK_DATA_SIZE = 5000000;
 const int TEST_DATA_SIZE = 50;
 
 void generateRandomData(vector<int> &data, int minMax) {
@@ -95,7 +95,7 @@ unsigned long runTest(int recursiveThreshold) {
 	int mpiSize = COMM_WORLD.Get_size();
 	int mpiRank = COMM_WORLD.Get_rank();
 
-	LogSampleSizeStrategy sss(10);
+	LogSampleSizeStrategy sss(6);
 	//RootSampleSizeStrategy sss(2, 1);
 	SampleSortParams params(mpiRank, mpiSize, 0, true, -1, sss);
 	// GatherSortSamplesStrategy sortSamplesStrategy;
@@ -232,10 +232,10 @@ int main(int argc, char *argv[]) {
 	//thresholds.push_back(10);
 	//thresholds.push_back(20);
 	thresholds.push_back(40);
-	thresholds.push_back(80);
-	thresholds.push_back(160);
+	//thresholds.push_back(80);
+	//thresholds.push_back(160);
 	//thresholds.push_back(320);
-	thresholds.push_back(1 << 30);
+	//thresholds.push_back(1 << 30);
 
 	COMM_WORLD.Barrier();
 
@@ -243,7 +243,7 @@ int main(int argc, char *argv[]) {
 		cout << " ====== TESTING STD::SORT  ====== " << endl;
 	}
 
-	stdMedian = runTests(5, 100, -1, runStdSort);
+	stdMedian = runTests(10, 30, -1, runStdSort);
 
 	if (mpiRank == 0) {
 		cout << " ====== TESTING SAMPLESORT ====== " << endl;
@@ -255,7 +255,7 @@ int main(int argc, char *argv[]) {
 					<< " ====== " << endl;
 		}
 
-		ourMedians.push_back(runTests(10, 100, thresholds[i], runTest));
+		ourMedians.push_back(runTests(10, 30, thresholds[i], runTest));
 	}
 
 	if (mpiRank == 0) {
@@ -265,6 +265,7 @@ int main(int argc, char *argv[]) {
 			double globalEfficiency = speedUp / mpiSize;
 
 			cout << "For threshold =         " << thresholds[i] << endl;
+			cout << "  median runtime =      " << ourMedians[i] << endl;
 			cout << "  speedUp =             " << speedUp << endl;
 			cout << "  efficiency (local) =  " << localEfficiency << endl;
 			cout << "  efficiency (global) = " << globalEfficiency << endl;

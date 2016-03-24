@@ -34,7 +34,8 @@ SampleSort<T>::SampleSort(SampleSortParams &p,
 }
 
 template<typename T>
-void SampleSort<T>::sort(vector<T> &data, vector<T> &sortedData, int globalDataSize) {
+void SampleSort<T>::sort(vector<T> &data, vector<T> &sortedData,
+		int globalDataSize) {
 	if (p.presortLocalData) {
 		std::sort(data.begin(), data.end());
 	}
@@ -43,7 +44,8 @@ void SampleSort<T>::sort(vector<T> &data, vector<T> &sortedData, int globalDataS
 	vector<int> positions;
 	vector<T> splitter(p.mpiSize - 1);
 
-	p.sampleSize = min(p.sampleSizeStrategy.sampleSize(globalDataSize), (int) data.size() / 2);
+	p.sampleSize = min(p.sampleSizeStrategy.sampleSize(globalDataSize),
+			(int) data.size() / 2);
 	INFOR(p.sampleSize);
 
 	//DEBUGV(p.sampleSize);
@@ -73,13 +75,36 @@ void SampleSort<T>::drawSamples(vector<T> &data, vector<T> &samples) {
 template<typename T>
 void SampleSort<T>::partitionData(vector<T> &data, vector<T> &splitter,
 		vector<int> &positions) {
+	if (p.presortLocalData) {
 // BINARY SEARCH FOR SPLITTER POSITIONS
-	typename vector<T>::iterator first = data.begin();
+		typename vector<T>::iterator first = data.begin();
 
-	positions.push_back(0);
-	for (int i = 0; i < p.mpiSize - 1; i++) {
-		first = lower_bound(first, data.end(), splitter[i]);
-		positions.push_back(first - data.begin());
+		positions.push_back(0);
+		for (int i = 0; i < p.mpiSize - 1; i++) {
+			first = lower_bound(first, data.end(), splitter[i]);
+			positions.push_back(first - data.begin());
+		}
+	} else {
+		vector<vector<T>> buckets(splitter.size() + 1);
+
+		for (int i = 0; i < buckets.size(); i++) {
+			buckets[i].reserve(data.size() / this->p.mpiSize * 2);
+		}
+
+		for (int i = 0; i < data.size(); i++) {
+			int bucketPosition = lower_bound(splitter.begin(), splitter.end(),
+					data[i]) - splitter.begin();
+			buckets[bucketPosition].push_back(data[i]);
+		}
+
+		int currentPosition = 0;
+		for (int i = 0; i < buckets.size(); i++) {
+			positions.push_back(currentPosition);
+
+			for (int j = 0; j < buckets[i].size(); j++) {
+				data[currentPosition++] = buckets[i][j];
+			}
+		}
 	}
 }
 
@@ -94,7 +119,8 @@ void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 		bucketSizes[i] = sizeof(T) * (positions[i + 1] - positions[i]);
 	}
 
-	bucketSizes[p.mpiSize - 1] = sizeof(T) * (data.size() - positions[p.mpiSize - 1]);
+	bucketSizes[p.mpiSize - 1] = sizeof(T)
+			* (data.size() - positions[p.mpiSize - 1]);
 
 	// Exchange bucket sizes. Receive how many elements we receive from every other PE.
 	COMM_WORLD.Alltoall(bucketSizes, 1, MPI::INT, recBucketSizes, 1, MPI::INT);
@@ -132,11 +158,14 @@ void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 
 template<typename T>
 void SampleSort<T>::sortData(vector<T> &receivedData) {
-	std::sort(receivedData.begin(), receivedData.end());
+	if (p.presortLocalData) {
+		// TODO !!!
+	} else {
+		std::sort(receivedData.begin(), receivedData.end());
+	}
 }
 
 template<typename T>
 SampleSort<T>::~SampleSort() {
 // TODO Auto-generated destructor stub
 }
-

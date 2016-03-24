@@ -38,8 +38,9 @@ public:
 		} else {
 			const int globalSampleCount = p.sampleSize * p.mpiSize;
 			SampleSortParams ssp(p);
-			SampleSort<T> recurse(ssp, *this);
 			vector<T> sortedSamples;
+			SampleSort<T> recurse(ssp, *this);
+
 			// Give local sample size as global sample size,
 			// to reduce the amount of samples in the recursion steps.
 			// This might be viewed as a hck.
