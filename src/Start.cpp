@@ -40,8 +40,9 @@ void generateRandomData(vector<int> &data, int mpiSize) {
 	}
 }
 
-bool checkSorted(vector<int> &array, int mpiRank, int mpiSize) {
-	int size = array.size();
+template< typename T >
+bool checkSorted(vector<T> &array, int mpiRank, int mpiSize) {
+	int size = array.size() * sizeof(T);
 	vector<int> gatheredSizes;
 
 	if (mpiRank == 0) {
@@ -64,8 +65,8 @@ bool checkSorted(vector<int> &array, int mpiRank, int mpiSize) {
 		allData.resize(offsets[mpiSize - 1] + gatheredSizes[mpiSize - 1]);
 	}
 
-	COMM_WORLD.Gatherv(array.data(), array.size(), MPI::INT, allData.data(),
-			gatheredSizes.data(), offsets.data(), MPI::INT, 0);
+	COMM_WORLD.Gatherv(array.data(), array.size() * sizeof(T), MPI::BYTE, allData.data(),
+			gatheredSizes.data(), offsets.data(), MPI::BYTE, 0);
 
 	if (mpiRank == 0) {
 		for (int i = 1; i < allData.size(); i++) {
@@ -139,6 +140,23 @@ void runTests(int runCount, int recursiveThreshold) {
 		cout << "Sorting time median = " << times[times.size() / 2] << "us"
 				<< endl;
 	}
+}
+
+bool testAllEqualValue( int recursive_threshold, double value ) {
+	vector<double> data( TEST_DATA_SIZE );
+	for ( vector<double>::iterator it = data.begin(); it != data.end(); it++ ) {
+		*it = value;
+	}
+	int mpiSize = COMM_WORLD.Get_size();
+	int mpiRank = COMM_WORLD.Get_rank();
+
+	SampleSortParams params( mpiRank, mpiSize, 0, true, -1 );
+	RecursiveSortSamplesStrategy<double> sortSamplesStrategy( recursive_threshold );
+	SampleSort<double> sorter( params, sortSamplesStrategy );
+	vector<double> results;
+	sorter.sort( data, results );
+	return checkSorted( results, mpiRank, mpiSize );
+	
 }
 
 int main(int argc, char *argv[]) {
