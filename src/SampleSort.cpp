@@ -117,19 +117,10 @@ void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 	int *bucketSizes = new int[p.mpiSize];
 	int *recBucketSizes = new int[p.mpiSize];
 
-	cout << p.mpiRank << ": sendData = " << hex;
-	for (int i = 0; i < data.size(); i++) {
-		cout << data[i] << " ";
-	}
-	cout << dec << endl;
-
-	cout << p.mpiRank << ": positions = ";
 	// Adjust positions for data type size
 	for (int i = 0; i < positions.size(); i++) {
 		positions[i] *= sizeof(T);
-		cout << positions[i] << " ";
 	}
-	cout << endl;
 
 	// Calculate our bucket sizes
 	for (int i = 0; i < p.mpiSize - 1; i++) {
@@ -138,20 +129,8 @@ void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 
 	bucketSizes[p.mpiSize - 1] = sizeof(T) * data.size() - positions[p.mpiSize - 1];
 
-	cout << p.mpiRank << ": bucketSizes = ";
-	for (int i = 0; i < p.mpiSize; i++) {
-		cout << bucketSizes[i] << " ";
-	}
-	cout << endl;
-
 	// Exchange bucket sizes. Receive how many elements we receive from every other PE.
 	COMM_WORLD.Alltoall(bucketSizes, 1, MPI::INT, recBucketSizes, 1, MPI::INT);
-
-	cout << p.mpiRank << ": recBucketSizes = ";
-	for (int i = 0; i < p.mpiSize; i++) {
-		cout << recBucketSizes[i] << " ";
-	}
-	cout << endl;
 
 	int receiveSize = 0;
 
@@ -164,7 +143,6 @@ void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 
 	if (receiveSize / sizeof(T) == 0) {
 		receivedData.reserve(1);
-		DEBUG("Receiving nothing!");
 	}
 
 	// Fill receivedData with deterministic error values
@@ -180,28 +158,11 @@ void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 		receivePositions[i] = recBucketSizes[i - 1] + receivePositions[i - 1];
 	}
 
-	cout << p.mpiRank << ": receivePositions = ";
-	for (int i = 0; i < receivePositions.size(); i++) {
-		cout << receivePositions[i] << " ";
-	}
-	cout << endl;
-
 	// Has calculated how much data from which node is received at which position in our receiver array.
-	cout << p.mpiRank << ": sendData = " << hex;
-	for (int i = 0; i < data.size() * sizeof(T); i++) {
-		cout << setw(2) << setfill('0') << (unsigned int) ((unsigned char*) data.data())[i] << " ";
-	}
-	cout << dec << endl;
 
 	COMM_WORLD.Alltoallv(data.data(), bucketSizes, positions.data(), MPI::BYTE,
 			receivedData.data(), recBucketSizes, receivePositions.data(),
 			MPI::BYTE);
-
-	cout << p.mpiRank << ": receivedData = " << hex;
-	for (int i = 0; i < receivedData.size() * sizeof(T); i++) {
-		cout << setw(2) << setfill('0') << (unsigned int) ((unsigned char*) receivedData.data())[i] << " ";
-	}
-	cout << dec << endl;
 
 	delete bucketSizes;
 	delete recBucketSizes;
