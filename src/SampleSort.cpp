@@ -193,9 +193,9 @@ void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 	}
 	cout << dec << endl;
 
-	COMM_WORLD.Alltoallv((char*) data.data(), bucketSizes, positions.data(), MPI::CHAR,
-			(char*) receivedData.data(), recBucketSizes, receivePositions.data(),
-			MPI::CHAR);
+	COMM_WORLD.Alltoallv(data.data(), bucketSizes, positions.data(), MPI::BYTE,
+			receivedData.data(), recBucketSizes, receivePositions.data(),
+			MPI::BYTE);
 
 	cout << p.mpiRank << ": receivedData = " << hex;
 	for (int i = 0; i < receivedData.size() * sizeof(T); i++) {
@@ -205,9 +205,6 @@ void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 
 	delete bucketSizes;
 	delete recBucketSizes;
-
-	COMM_WORLD.Barrier();
-	exit(0);
 }
 
 template<typename T>
