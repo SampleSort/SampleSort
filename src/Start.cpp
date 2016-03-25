@@ -33,7 +33,7 @@
 using namespace std;
 using namespace MPI;
 
-const int BENCHMARK_DATA_SIZE = 5000000;
+const int BENCHMARK_DATA_SIZE = 500000;
 const int TEST_DATA_SIZE = 50;
 
 void generateRandomData(vector<int> &data, int minMax) {
@@ -197,6 +197,7 @@ unsigned long runTests(const int warmUp, const int runCount,
 			cout << "Warm up " << (i + 1) << "/" << warmUp << endl;
 		}
 
+		COMM_WORLD.Barrier();
 		test(recursiveThreshold);
 	}
 
@@ -207,6 +208,7 @@ unsigned long runTests(const int warmUp, const int runCount,
 					<< endl;
 		}
 
+		COMM_WORLD.Barrier();
 		times.push_back(test(recursiveThreshold));
 	}
 
@@ -234,16 +236,16 @@ int main(int argc, char *argv[]) {
 	vector<int> thresholds;
 	vector<unsigned long> ourMedians;
 	unsigned long stdMedian;
-	const int repetitions = 500;
+	const int repetitions = 100;
 
 	thresholds.push_back(0);
-	//thresholds.push_back(1);
+	thresholds.push_back(1);
 	thresholds.push_back(2);
-	//thresholds.push_back(3);
-	//thresholds.push_back(6);
+	thresholds.push_back(3);
+	thresholds.push_back(6);
 	//thresholds.push_back(10);
 	//thresholds.push_back(20);
-	//thresholds.push_back(40);
+	thresholds.push_back(40);
 	//thresholds.push_back(80);
 	//thresholds.push_back(160);
 	//thresholds.push_back(320);

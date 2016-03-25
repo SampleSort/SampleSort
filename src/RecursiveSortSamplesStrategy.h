@@ -36,6 +36,8 @@ public:
 			GatherSortSamplesStrategy<T> gsss;
 			gsss.sortSamples(samples, splitters, p);
 		} else {
+			cout << "recursing... " << threshold << endl;
+
 			const int globalSampleCount = p.sampleSize * p.mpiSize;
 			vector<T> sortedSamples;
 
