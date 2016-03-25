@@ -33,7 +33,7 @@
 using namespace std;
 using namespace MPI;
 
-const int BENCHMARK_DATA_SIZE = 5;
+const int BENCHMARK_DATA_SIZE = 5000000;
 const int TEST_DATA_SIZE = 50;
 
 void generateRandomData(vector<int> &data, int minMax) {
@@ -77,13 +77,6 @@ bool checkSorted(vector<T> &array, int mpiRank, int mpiSize) {
 	COMM_WORLD.Gatherv(array.data(), array.size() * sizeof(T), MPI::BYTE,
 			allData.data(), gatheredSizes.data(), offsets.data(), MPI::BYTE, 0);
 
-	DEBUGV(allData.size());
-	cout << "allData = ";
-	for (int i = 0; i < allData.size(); i++) {
-		cout << allData[i] << " ";
-	}
-	cout << endl;
-
 	if (mpiRank == 0) {
 		for (int i = 1; i < allData.size(); i++) {
 			if (allData[i - 1] > allData[i]) {
@@ -92,7 +85,7 @@ bool checkSorted(vector<T> &array, int mpiRank, int mpiSize) {
 			}
 		}
 
-		cout << "Sorting correct!" << endl;
+		//cout << "Sorting correct!" << endl;
 		return true;
 	}
 
@@ -241,11 +234,11 @@ int main(int argc, char *argv[]) {
 	vector<int> thresholds;
 	vector<unsigned long> ourMedians;
 	unsigned long stdMedian;
-	const int repetitions = 5;
+	const int repetitions = 500;
 
 	thresholds.push_back(0);
 	//thresholds.push_back(1);
-	//thresholds.push_back(2);
+	thresholds.push_back(2);
 	//thresholds.push_back(3);
 	//thresholds.push_back(6);
 	//thresholds.push_back(10);

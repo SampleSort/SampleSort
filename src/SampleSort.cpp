@@ -171,22 +171,6 @@ void SampleSort<T>::shareData(vector<T> &data, vector<int> &positions,
 template<typename T>
 void SampleSort<T>::sortData(vector<T> &receivedData,
 		vector<int> &receivePositions) {
-	cout << p.mpiRank << ": receivedData = ";
-	for (int i = 0; i < receivedData.size(); i++) {
-		cout << receivedData[i] << " ";
-	}
-	cout << endl;
-
-	cout << p.mpiRank << ": receivePositions = ";
-	for (int i = 0; i < receivePositions.size(); i++) {
-		cout << receivePositions[i] / sizeof(T) << " ";
-
-		if (receivePositions[i] % sizeof(T) != 0) {
-			throw runtime_error("Receive position wrong");
-		}
-	}
-	cout << endl;
-
 	if (p.presortLocalData) {
 		vector<vector<T>> sortedLists;
 		sortedLists.reserve(receivePositions.size());
@@ -197,23 +181,11 @@ void SampleSort<T>::sortData(vector<T> &receivedData,
 			const int length = (receivePositions[i + 1] - receivePositions[i])
 					/ sizeof(T);
 
-			cout << "length = " << length << endl;
-
 			sortedList.reserve(length);
 
 			for (int j = 0; j < length; j++) {
-				T before = 0;
-				if (j > 0) {
-					before = sortedList.back();
-				}
-
 				sortedList.push_back(
 						receivedData[j + receivePositions[i] / sizeof(T)]);
-				T after = sortedList.back();
-
-				if (j > 0 && before > after) {
-					throw runtime_error("List is not sorted");
-				}
 			}
 
 			sortedLists.push_back(sortedList);
