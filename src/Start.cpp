@@ -238,18 +238,18 @@ int main(int argc, char *argv[]) {
 	unsigned long stdMedian;
 	const int repetitions = 100;
 
-	thresholds.push_back(0);
-	thresholds.push_back(1);
-	thresholds.push_back(2);
-	thresholds.push_back(3);
-	thresholds.push_back(6);
-	//thresholds.push_back(10);
-	//thresholds.push_back(20);
+	//thresholds.push_back(0);
+	//thresholds.push_back(1);
+	//thresholds.push_back(2);
+	//thresholds.push_back(3);
+	//thresholds.push_back(6);
+	thresholds.push_back(10);
+	thresholds.push_back(20);
 	thresholds.push_back(40);
-	//thresholds.push_back(80);
-	//thresholds.push_back(160);
-	//thresholds.push_back(320);
-	//thresholds.push_back(1 << 30);
+	thresholds.push_back(80);
+	thresholds.push_back(160);
+	thresholds.push_back(320);
+	thresholds.push_back(1 << 30);
 
 	COMM_WORLD.Barrier();
 

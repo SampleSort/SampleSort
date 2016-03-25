@@ -32,17 +32,15 @@ public:
 
 	void sortSamples(vector<T> &samples, vector<T> &splitters,
 			SampleSortParams &p) {
-		if (threshold <= 0) {
+		if (threshold <= samples.size()) {
 			GatherSortSamplesStrategy<T> gsss;
 			gsss.sortSamples(samples, splitters, p);
 		} else {
-			cout << "recursing... " << threshold << endl;
-
 			const int globalSampleCount = p.sampleSize * p.mpiSize;
 			vector<T> sortedSamples;
 
 			SampleSortParams ssp(p);
-			RecursiveSortSamplesStrategy rsss(threshold - 1);
+			RecursiveSortSamplesStrategy rsss(samples.size());
 			SampleSort<T> recurse(ssp, rsss);
 
 			// Give local sample size as global sample size,
