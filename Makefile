@@ -3,20 +3,24 @@ CXX = mpic++
 OPTFLAGS = -O3
 CXXFLAGS = $(OPTFLAGS) -g -std=c++11
 INCLUDEPATH = ~/include/
-_OBJECTS = Start.o SampleSort.o Random.o SampleSortParams.o BinaryTreePrefixSum.o LogSampleSizeStrategy.o RootSampleSizeStrategy.o
+_OBJECTS = SampleSort.o Random.o SampleSortParams.o BinaryTreePrefixSum.o LogSampleSizeStrategy.o RootSampleSizeStrategy.o
 OBJECTS = $(patsubst %,build/%,$(_OBJECTS))
 
-_TPOBJECTS = BinaryTreePrefixSum.o TestPrefix.o
+_SSOBJECTS = $(_OBJECTS) Start.o
+SSOBJECTS = $(patsubst %,build/%,$(_SSOBJECTS))
+
+_TPOBJECTS = $(_OBJECTS) TestPrefix.o
 TPOBJECTS = $(patsubst %,build/%,$(_TPOBJECTS))
 
-ALLOBJECTS = $(OBJECTS) $(TPOBJECTS)
+_ALLOBJECTS = $(_OBJECTS) Start.o TestPrefix.o
+ALLOBJECTS = $(patsubst %,build/%,$(_ALLOBJECTS))
 
 .PHONY: all
 
 all: samplesort testprefix
 
-samplesort: $(OBJECTS)
-	export PATH=$$PATH:~/bin/; $(CXX) $(OBJECTS) -o SampleSort
+samplesort: $(SSOBJECTS)
+	export PATH=$$PATH:~/bin/; $(CXX) $(SSOBJECTS) -o SampleSort
 	
 testprefix: $(TPOBJECTS)
 	export PATH=$$PATH:~/bin/; $(CXX) $(TPOBJECTS) -o TestPrefix

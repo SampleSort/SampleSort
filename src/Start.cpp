@@ -33,7 +33,7 @@
 using namespace std;
 using namespace MPI;
 
-const int BENCHMARK_DATA_SIZE = 50;
+const int BENCHMARK_DATA_SIZE = 5;
 const int TEST_DATA_SIZE = 50;
 
 void generateRandomData(vector<int> &data, int minMax) {
