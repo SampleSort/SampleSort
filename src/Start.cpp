@@ -98,7 +98,7 @@ unsigned long runTest(int recursiveThreshold) {
 
 	LogSampleSizeStrategy sss(6);
 	//RootSampleSizeStrategy sss(2, 1);
-	SampleSortParams params(mpiRank, mpiSize, 0, true, -1, sss);
+	SampleSortParams params(mpiRank, mpiSize, 0, false, -1, sss);
 	// GatherSortSamplesStrategy sortSamplesStrategy;
 	RecursiveSortSamplesStrategy<int> sortSamplesStrategy(recursiveThreshold);
 	SampleSort<int> sorter(params, sortSamplesStrategy);
