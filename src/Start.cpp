@@ -101,7 +101,7 @@ unsigned long runTest(int recursiveThreshold, bool withPresort, int inputSize) {
 	// GatherSortSamplesStrategy sortSamplesStrategy;
 	RecursiveSortSamplesStrategy<int> sortSamplesStrategy(recursiveThreshold);
 	SampleSort<int> sorter(params, sortSamplesStrategy);
-	vector<int> data(inputSize);
+	vector<int> data(inputSize / mpiSize);
 	generateRandomData(data, mpiSize);
 
 	COMM_WORLD.Barrier();
@@ -224,6 +224,14 @@ unsigned long runTests(const int warmUp, const int runCount,
 	return median;
 }
 
+struct TestResult {
+	int inputSize;
+	bool withPresort;
+	int threshold;
+	unsigned long stdMedian;
+	unsigned long ourMedian;
+};
+
 int main(int argc, char *argv[]) {
 	Init(argc, argv);
 
@@ -237,8 +245,7 @@ int main(int argc, char *argv[]) {
 
 	vector<int> thresholds;
 	vector<int> inputSizes;
-	vector<unsigned long> ourMedians;
-	vector<unsigned long> stdMedians;
+	vector<TestResult> testResults;
 	const int repetitions = 100;
 
 	//thresholds.push_back(0);
@@ -254,20 +261,21 @@ int main(int argc, char *argv[]) {
 	//thresholds.push_back(320);
 	thresholds.push_back(1 << 30);
 
-	//for (int i = 0; i < 23; i++) {
-	for (int i = 0; i < 13; i++) {
+	for (int i = 0; i < 23; i++) {
 		inputSizes.push_back(1 << i);
 	}
 
 	COMM_WORLD.Barrier();
 
-	for (int size : inputSizes) {
+	for (int inputSize : inputSizes) {
 		if (mpiRank == 0) {
 			cout << " ====== TESTING STD::SORT  ====== " << endl;
 		}
 
-		stdMedians.push_back(
-				runTests(10, repetitions, -1, false, size, runStdSort));
+		struct TestResult testResult;
+		testResult.inputSize = inputSize;
+		testResult.stdMedian = runTests(10, repetitions, -1, false, inputSize,
+				runStdSort);
 
 		if (mpiRank == 0) {
 			cout << " ====== TESTING SAMPLESORT ====== " << endl;
@@ -279,60 +287,82 @@ int main(int argc, char *argv[]) {
 						<< " ====== " << endl;
 			}
 
-			ourMedians.push_back(
-					runTests(10, repetitions, thresholds[i], true, size,
-							runTest));
-			ourMedians.push_back(
-					runTests(10, repetitions, thresholds[i], false, size,
-							runTest));
+			testResult.threshold = thresholds[i];
+
+			testResult.withPresort = true;
+			testResult.ourMedian = runTests(10, repetitions, thresholds[i],
+					true, inputSize, runTest);
+			testResults.push_back(testResult);
+
+			testResult.withPresort = false;
+			testResult.ourMedian = runTests(10, repetitions, thresholds[i],
+					false, inputSize, runTest);
+			testResults.push_back(testResult);
 		}
 	}
 
 	if (mpiRank == 0) {
 		int index = 0;
 
-		for (int size : inputSizes) {
-			unsigned long stdMedian = stdMedians[index / thresholds.size() / 2];
+		for (struct TestResult testResult : testResults) {
+			double speedUp = testResult.stdMedian
+					/ (double) testResult.ourMedian;
+			double localEfficiency = speedUp / concurrentThreadsSupported;
+			double globalEfficiency = speedUp / mpiSize;
 
-			for (int threshold : thresholds) {
-				double speedUp = stdMedian / (double) ourMedians[index];
-				double localEfficiency = speedUp / concurrentThreadsSupported;
-				double globalEfficiency = speedUp / mpiSize;
+			cout << "For threshold =         " << testResult.threshold << endl;
+			cout << "  MPI size =            " << mpiSize << endl;
+			cout << "  local size =          " << concurrentThreadsSupported
+					<< endl;
+			cout << "  input size =          " << testResult.inputSize << endl;
+			cout << "  repetitions =         " << repetitions << endl;
+			cout << "  presort =             " << testResult.withPresort
+					<< endl;
+			cout << "  median runtime =      " << testResult.ourMedian << "us"
+					<< endl;
+			cout << "  speedUp =             " << speedUp << endl;
+			cout << "  efficiency (local) =  " << localEfficiency << endl;
+			cout << "  efficiency (global) = " << globalEfficiency << endl;
+		}
 
-				cout << "For threshold =         " << threshold << endl;
-				cout << "  MPI size =            " << mpiSize << endl;
-				cout << "  local size =          " << concurrentThreadsSupported
-						<< endl;
-				cout << "  input size =          " << size * mpiSize << endl;
-				cout << "  repetitions =         " << repetitions << endl;
-				cout << "  presort =             true" << endl;
-				cout << "  median runtime =      " << ourMedians[index] << "us"
-						<< endl;
-				cout << "  speedUp =             " << speedUp << endl;
-				cout << "  efficiency (local) =  " << localEfficiency << endl;
-				cout << "  efficiency (global) = " << globalEfficiency << endl;
+		cout << "<><><><><><><><><><><><><><><><><><><><>" << endl;
+		cout << "<><><><><><> PGFPLOT OUTPUT <><><><><><>" << endl;
+		cout << "<><><><><><><><><><><><><><><><><><><><>" << endl;
 
-				index++;
+		cout << " ==== STD::SORT  ====" << endl;
+		cout << "Runtime:" << endl;
+		for (int i = 0; i < testResults.size(); i += thresholds.size() * 2) {
+			cout << "(" << testResults[i].inputSize << ", "
+					<< testResults[i].stdMedian << ") ";
+		}
+		cout << endl;
 
-				speedUp = stdMedian / (double) ourMedians[index];
-				localEfficiency = speedUp / concurrentThreadsSupported;
-				globalEfficiency = speedUp / mpiSize;
+		cout << " ==== SAMPLESORT ====" << endl;
+		for (int i = 0; i < thresholds.size() * 2; i++) {
+			cout << "Runtime (threshold = " << testResults[i].threshold
+					<< ", withPresort = " << testResults[i].withPresort << "):"
+					<< endl;
 
-				cout << "For threshold =         " << threshold << endl;
-				cout << "  MPI size =            " << mpiSize << endl;
-				cout << "  local size =          " << concurrentThreadsSupported
-						<< endl;
-				cout << "  input size =          " << size * mpiSize << endl;
-				cout << "  repetitions =         " << repetitions << endl;
-				cout << "  presort =             false" << endl;
-				cout << "  median runtime =      " << ourMedians[index] << "us"
-						<< endl;
-				cout << "  speedUp =             " << speedUp << endl;
-				cout << "  efficiency (local) =  " << localEfficiency << endl;
-				cout << "  efficiency (global) = " << globalEfficiency << endl;
-
-				index++;
+			for (int j = i; j < testResults.size();
+					j += thresholds.size() * 2) {
+				cout << "(" << testResults[j].inputSize << ", "
+						<< testResults[j].ourMedian << ") ";
 			}
+			cout << endl;
+		}
+
+		for (int i = 0; i < thresholds.size() * 2; i++) {
+			cout << "Speedup (threshold = " << testResults[i].threshold
+					<< ", withPresort = " << testResults[i].withPresort << "):"
+					<< endl;
+
+			for (int j = i; j < testResults.size();
+					j += thresholds.size() * 2) {
+				cout << "(" << testResults[j].inputSize << ", "
+						<< (testResults[j].stdMedian
+								/ (double) testResults[j].ourMedian) << ") ";
+			}
+			cout << endl;
 		}
 	}
 
