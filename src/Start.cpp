@@ -33,7 +33,6 @@
 using namespace std;
 using namespace MPI;
 
-const int BENCHMARK_DATA_SIZE = 500000;
 const int TEST_DATA_SIZE = 50;
 
 void generateRandomData(vector<int> &data, int minMax) {
@@ -92,17 +91,17 @@ bool checkSorted(vector<T> &array, int mpiRank, int mpiSize) {
 	return true;
 }
 
-unsigned long runTest(int recursiveThreshold) {
+unsigned long runTest(int recursiveThreshold, bool withPresort, int inputSize) {
 	int mpiSize = COMM_WORLD.Get_size();
 	int mpiRank = COMM_WORLD.Get_rank();
 
 	LogSampleSizeStrategy sss(6);
 	//RootSampleSizeStrategy sss(2, 1);
-	SampleSortParams params(mpiRank, mpiSize, 0, false, -1, sss);
+	SampleSortParams params(mpiRank, mpiSize, 0, withPresort, -1, sss);
 	// GatherSortSamplesStrategy sortSamplesStrategy;
 	RecursiveSortSamplesStrategy<int> sortSamplesStrategy(recursiveThreshold);
 	SampleSort<int> sorter(params, sortSamplesStrategy);
-	vector<int> data(BENCHMARK_DATA_SIZE);
+	vector<int> data(inputSize);
 	generateRandomData(data, mpiSize);
 
 	COMM_WORLD.Barrier();
@@ -110,7 +109,7 @@ unsigned long runTest(int recursiveThreshold) {
 			chrono::high_resolution_clock::now().time_since_epoch().count();
 
 	vector<int> result;
-	sorter.sort(data, result, BENCHMARK_DATA_SIZE * mpiSize);
+	sorter.sort(data, result, inputSize / mpiSize);
 
 	unsigned long end =
 			chrono::high_resolution_clock::now().time_since_epoch().count();
@@ -135,12 +134,13 @@ unsigned long runTest(int recursiveThreshold) {
 	return time * 1e6;
 }
 
-unsigned long runStdSort(int recursiveThreshold) {
+unsigned long runStdSort(int recursiveThreshold, bool withPresort,
+		int inputSize) {
 	int mpiSize = COMM_WORLD.Get_size();
 	int mpiRank = COMM_WORLD.Get_rank();
 
 	if (mpiRank == 0) {
-		vector<int> data(BENCHMARK_DATA_SIZE * mpiSize);
+		vector<int> data(inputSize);
 		generateRandomData(data, mpiSize);
 
 		unsigned long start =
@@ -187,7 +187,8 @@ bool testAllEqualValue(int recursive_threshold, double value) {
 }
 
 unsigned long runTests(const int warmUp, const int runCount,
-		int recursiveThreshold, unsigned long test(int)) {
+		int recursiveThreshold, bool withPresort, int inputSize,
+		unsigned long test(int, bool, int)) {
 	int mpiSize = COMM_WORLD.Get_size();
 	int mpiRank = COMM_WORLD.Get_rank();
 	vector<unsigned long> times;
@@ -198,18 +199,19 @@ unsigned long runTests(const int warmUp, const int runCount,
 		}
 
 		COMM_WORLD.Barrier();
-		test(recursiveThreshold);
+		test(recursiveThreshold, withPresort, inputSize);
 	}
 
 	for (int i = 0; i < runCount; i++) {
 		if (mpiRank == 0 && (i % 50 == 0 || i == runCount - 1)) {
 			cout << "Running test no " << (i + 1) << "/" << runCount
 					<< " with recursiveThreshold = " << recursiveThreshold
-					<< endl;
+					<< " and with" << (withPresort ? "" : "out")
+					<< " presort and with inputSize = " << inputSize << endl;
 		}
 
 		COMM_WORLD.Barrier();
-		times.push_back(test(recursiveThreshold));
+		times.push_back(test(recursiveThreshold, withPresort, inputSize));
 	}
 
 	sort(times.begin(), times.end());
@@ -234,8 +236,9 @@ int main(int argc, char *argv[]) {
 			<< concurrentThreadsSupported << endl;
 
 	vector<int> thresholds;
+	vector<int> inputSizes;
 	vector<unsigned long> ourMedians;
-	unsigned long stdMedian;
+	vector<unsigned long> stdMedians;
 	const int repetitions = 100;
 
 	//thresholds.push_back(0);
@@ -243,52 +246,93 @@ int main(int argc, char *argv[]) {
 	//thresholds.push_back(2);
 	//thresholds.push_back(3);
 	//thresholds.push_back(6);
-	thresholds.push_back(10);
-	thresholds.push_back(20);
-	thresholds.push_back(40);
+	//thresholds.push_back(10);
+	//thresholds.push_back(20);
+	//thresholds.push_back(40);
 	thresholds.push_back(80);
-	thresholds.push_back(160);
-	thresholds.push_back(320);
+	//thresholds.push_back(160);
+	//thresholds.push_back(320);
 	thresholds.push_back(1 << 30);
+
+	//for (int i = 0; i < 23; i++) {
+	for (int i = 0; i < 13; i++) {
+		inputSizes.push_back(1 << i);
+	}
 
 	COMM_WORLD.Barrier();
 
-	if (mpiRank == 0) {
-		cout << " ====== TESTING STD::SORT  ====== " << endl;
-	}
-
-	stdMedian = runTests(10, repetitions, -1, runStdSort);
-
-	if (mpiRank == 0) {
-		cout << " ====== TESTING SAMPLESORT ====== " << endl;
-	}
-
-	for (int i = 0; i < thresholds.size(); i++) {
+	for (int size : inputSizes) {
 		if (mpiRank == 0) {
-			cout << " ====== ROUND " << (i + 1) << "/" << thresholds.size()
-					<< " ====== " << endl;
+			cout << " ====== TESTING STD::SORT  ====== " << endl;
 		}
 
-		ourMedians.push_back(runTests(10, repetitions, thresholds[i], runTest));
+		stdMedians.push_back(
+				runTests(10, repetitions, -1, false, size, runStdSort));
+
+		if (mpiRank == 0) {
+			cout << " ====== TESTING SAMPLESORT ====== " << endl;
+		}
+
+		for (int i = 0; i < thresholds.size(); i++) {
+			if (mpiRank == 0) {
+				cout << " ====== ROUND " << (i + 1) << "/" << thresholds.size()
+						<< " ====== " << endl;
+			}
+
+			ourMedians.push_back(
+					runTests(10, repetitions, thresholds[i], true, size,
+							runTest));
+			ourMedians.push_back(
+					runTests(10, repetitions, thresholds[i], false, size,
+							runTest));
+		}
 	}
 
 	if (mpiRank == 0) {
-		for (int i = 0; i < thresholds.size(); i++) {
-			double speedUp = stdMedian / (double) ourMedians[i];
-			double localEfficiency = speedUp / concurrentThreadsSupported;
-			double globalEfficiency = speedUp / mpiSize;
+		int index = 0;
 
-			cout << "For threshold =         " << thresholds[i] << endl;
-			cout << "  MPI size =            " << mpiSize << endl;
-			cout << "  local size =          " << concurrentThreadsSupported
-					<< endl;
-			cout << "  input size =          " << BENCHMARK_DATA_SIZE * mpiSize
-					<< endl;
-			cout << "  repetitions =         " << repetitions << endl;
-			cout << "  median runtime =      " << ourMedians[i] << "us" << endl;
-			cout << "  speedUp =             " << speedUp << endl;
-			cout << "  efficiency (local) =  " << localEfficiency << endl;
-			cout << "  efficiency (global) = " << globalEfficiency << endl;
+		for (int size : inputSizes) {
+			unsigned long stdMedian = stdMedians[index / thresholds.size() / 2];
+
+			for (int threshold : thresholds) {
+				double speedUp = stdMedian / (double) ourMedians[index];
+				double localEfficiency = speedUp / concurrentThreadsSupported;
+				double globalEfficiency = speedUp / mpiSize;
+
+				cout << "For threshold =         " << threshold << endl;
+				cout << "  MPI size =            " << mpiSize << endl;
+				cout << "  local size =          " << concurrentThreadsSupported
+						<< endl;
+				cout << "  input size =          " << size * mpiSize << endl;
+				cout << "  repetitions =         " << repetitions << endl;
+				cout << "  presort =             true" << endl;
+				cout << "  median runtime =      " << ourMedians[index] << "us"
+						<< endl;
+				cout << "  speedUp =             " << speedUp << endl;
+				cout << "  efficiency (local) =  " << localEfficiency << endl;
+				cout << "  efficiency (global) = " << globalEfficiency << endl;
+
+				index++;
+
+				speedUp = stdMedian / (double) ourMedians[index];
+				localEfficiency = speedUp / concurrentThreadsSupported;
+				globalEfficiency = speedUp / mpiSize;
+
+				cout << "For threshold =         " << threshold << endl;
+				cout << "  MPI size =            " << mpiSize << endl;
+				cout << "  local size =          " << concurrentThreadsSupported
+						<< endl;
+				cout << "  input size =          " << size * mpiSize << endl;
+				cout << "  repetitions =         " << repetitions << endl;
+				cout << "  presort =             false" << endl;
+				cout << "  median runtime =      " << ourMedians[index] << "us"
+						<< endl;
+				cout << "  speedUp =             " << speedUp << endl;
+				cout << "  efficiency (local) =  " << localEfficiency << endl;
+				cout << "  efficiency (global) = " << globalEfficiency << endl;
+
+				index++;
+			}
 		}
 	}
 
