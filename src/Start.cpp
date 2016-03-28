@@ -94,13 +94,18 @@ bool checkSorted(vector<T> &array, int mpiRank, int mpiSize) {
 	return true;
 }
 
-unsigned long runTest(int recursiveThreshold, bool withPresort, int inputSize) {
+unsigned long runTest(int recursiveThreshold, bool withPresort, int inputSize,
+		bool withLogStrategy) {
 	int mpiSize = COMM_WORLD.Get_size();
 	int mpiRank = COMM_WORLD.Get_rank();
 
-	LogSampleSizeStrategy sss(6);
-	//RootSampleSizeStrategy sss(2, 1);
-	SampleSortParams params(mpiRank, mpiSize, 0, withPresort, -1, sss);
+	SampleSizeStrategy *sss = new RootSampleSizeStrategy(2, 1);
+	if (withLogStrategy) {
+		delete sss;
+		sss = new LogSampleSizeStrategy(6);
+	}
+
+	SampleSortParams params(mpiRank, mpiSize, 0, withPresort, -1, *sss);
 	// GatherSortSamplesStrategy sortSamplesStrategy;
 	RecursiveSortSamplesStrategy<int> sortSamplesStrategy(recursiveThreshold);
 	SampleSort<int> sorter(params, sortSamplesStrategy);
@@ -134,11 +139,12 @@ unsigned long runTest(int recursiveThreshold, bool withPresort, int inputSize) {
 		//cout << "Sorting took " << (time * 1e6) << "us" << endl;
 	}
 
+	delete sss;
 	return time * 1e6;
 }
 
 unsigned long runStdSort(int recursiveThreshold, bool withPresort,
-		int inputSize) {
+		int inputSize, bool withLogStrategy) {
 	int mpiSize = COMM_WORLD.Get_size();
 	int mpiRank = COMM_WORLD.Get_rank();
 
@@ -191,7 +197,7 @@ bool testAllEqualValue(int recursive_threshold, double value) {
 
 unsigned long runTests(const int warmUp, const int runCount,
 		int recursiveThreshold, bool withPresort, int inputSize,
-		unsigned long test(int, bool, int)) {
+		bool withLogStrategy, unsigned long test(int, bool, int, bool)) {
 	int mpiSize = COMM_WORLD.Get_size();
 	int mpiRank = COMM_WORLD.Get_rank();
 	vector<unsigned long> times;
@@ -202,7 +208,7 @@ unsigned long runTests(const int warmUp, const int runCount,
 		}
 
 		COMM_WORLD.Barrier();
-		test(recursiveThreshold, withPresort, inputSize);
+		test(recursiveThreshold, withPresort, inputSize, withLogStrategy);
 	}
 
 	for (int i = 0; i < runCount; i++) {
@@ -214,7 +220,9 @@ unsigned long runTests(const int warmUp, const int runCount,
 		}
 
 		COMM_WORLD.Barrier();
-		times.push_back(test(recursiveThreshold, withPresort, inputSize));
+		times.push_back(
+				test(recursiveThreshold, withPresort, inputSize,
+						withLogStrategy));
 	}
 
 	sort(times.begin(), times.end());
@@ -231,6 +239,7 @@ struct TestResult {
 	int inputSize;
 	bool withPresort;
 	int threshold;
+	bool withLogStrategy;
 	unsigned long stdMedian;
 	unsigned long ourMedian;
 };
@@ -278,7 +287,7 @@ int main(int argc, char *argv[]) {
 		struct TestResult testResult;
 		testResult.inputSize = inputSize;
 		testResult.stdMedian = runTests(10, repetitions, -1, false, inputSize,
-				runStdSort);
+				false, runStdSort);
 
 		if (mpiRank == 0) {
 			cout << " ====== TESTING SAMPLESORT ====== " << endl;
@@ -291,15 +300,27 @@ int main(int argc, char *argv[]) {
 			}
 
 			testResult.threshold = thresholds[i];
+			testResult.withLogStrategy = true;
 
 			testResult.withPresort = true;
 			testResult.ourMedian = runTests(10, repetitions, thresholds[i],
-					true, inputSize, runTest);
+					true, inputSize, true, runTest);
 			testResults.push_back(testResult);
 
 			testResult.withPresort = false;
 			testResult.ourMedian = runTests(10, repetitions, thresholds[i],
-					false, inputSize, runTest);
+					false, inputSize, true, runTest);
+			testResults.push_back(testResult);
+
+			testResult.withLogStrategy = false;
+			testResult.withPresort = true;
+			testResult.ourMedian = runTests(10, repetitions, thresholds[i],
+					true, inputSize, false, runTest);
+			testResults.push_back(testResult);
+
+			testResult.withPresort = false;
+			testResult.ourMedian = runTests(10, repetitions, thresholds[i],
+					false, inputSize, false, runTest);
 			testResults.push_back(testResult);
 		}
 	}
@@ -340,33 +361,35 @@ int main(int argc, char *argv[]) {
 			fout << " ==== STD::SORT  ====" << endl;
 			fout << "Runtime:" << endl;
 			for (int i = 0; i < testResults.size();
-					i += thresholds.size() * 2) {
+					i += thresholds.size() * 4) {
 				fout << "(" << testResults[i].inputSize << ", "
 						<< testResults[i].stdMedian << ") ";
 			}
 			fout << endl << endl;
 
 			fout << " ==== SAMPLESORT ====" << endl;
-			for (int i = 0; i < thresholds.size() * 2; i++) {
+			for (int i = 0; i < thresholds.size() * 4; i++) {
 				fout << "Runtime (threshold = " << testResults[i].threshold
 						<< ", withPresort = " << testResults[i].withPresort
-						<< "):" << endl;
+						<< ", withLogStrategy = "
+						<< testResults[i].withLogStrategy << "):" << endl;
 
 				for (int j = i; j < testResults.size();
-						j += thresholds.size() * 2) {
+						j += thresholds.size() * 4) {
 					fout << "(" << testResults[j].inputSize << ", "
 							<< testResults[j].ourMedian << ") ";
 				}
 				fout << endl << endl;
 			}
 
-			for (int i = 0; i < thresholds.size() * 2; i++) {
+			for (int i = 0; i < thresholds.size() * 4; i++) {
 				fout << "Speedup (threshold = " << testResults[i].threshold
 						<< ", withPresort = " << testResults[i].withPresort
-						<< "):" << endl;
+						<< ", withLogStrategy = "
+						<< testResults[i].withLogStrategy << "):" << endl;
 
 				for (int j = i; j < testResults.size();
-						j += thresholds.size() * 2) {
+						j += thresholds.size() * 4) {
 					fout << "(" << testResults[j].inputSize << ", "
 							<< (testResults[j].stdMedian
 									/ (double) testResults[j].ourMedian)
