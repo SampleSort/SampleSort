@@ -29,11 +29,14 @@
 #include <chrono>
 #include <algorithm>
 #include <thread>
+#include <fstream>
+#include <sstream>
 
 using namespace std;
 using namespace MPI;
 
 const int TEST_DATA_SIZE = 50;
+const bool DO_BENCHMARK = true;
 
 void generateRandomData(vector<int> &data, int minMax) {
 	default_random_engine randomGenerator(getSeed());
@@ -302,8 +305,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (mpiRank == 0) {
-		int index = 0;
-
 		for (struct TestResult testResult : testResults) {
 			double speedUp = testResult.stdMedian
 					/ (double) testResult.ourMedian;
@@ -325,44 +326,56 @@ int main(int argc, char *argv[]) {
 			cout << "  efficiency (global) = " << globalEfficiency << endl;
 		}
 
-		cout << "<><><><><><><><><><><><><><><><><><><><>" << endl;
-		cout << "<><><><><><> PGFPLOT OUTPUT <><><><><><>" << endl;
-		cout << "<><><><><><><><><><><><><><><><><><><><>" << endl;
+		if (DO_BENCHMARK) {
+			stringstream filename;
+			filename << "Benchmark_SampleSort_NT_" << mpiSize << ".txt" << endl;
 
-		cout << " ==== STD::SORT  ====" << endl;
-		cout << "Runtime:" << endl;
-		for (int i = 0; i < testResults.size(); i += thresholds.size() * 2) {
-			cout << "(" << testResults[i].inputSize << ", "
-					<< testResults[i].stdMedian << ") ";
-		}
-		cout << endl;
+			ofstream fout;
+			fout.open(filename.str().c_str(), ios::in | ios::trunc);
 
-		cout << " ==== SAMPLESORT ====" << endl;
-		for (int i = 0; i < thresholds.size() * 2; i++) {
-			cout << "Runtime (threshold = " << testResults[i].threshold
-					<< ", withPresort = " << testResults[i].withPresort << "):"
-					<< endl;
+			fout << "<><><><><><><><><><><><><><><><><><><><>" << endl;
+			fout << "<><><><><><> PGFPLOT OUTPUT <><><><><><>" << endl;
+			fout << "<><><><><><><><><><><><><><><><><><><><>" << endl << endl;
 
-			for (int j = i; j < testResults.size();
-					j += thresholds.size() * 2) {
-				cout << "(" << testResults[j].inputSize << ", "
-						<< testResults[j].ourMedian << ") ";
+			fout << " ==== STD::SORT  ====" << endl;
+			fout << "Runtime:" << endl;
+			for (int i = 0; i < testResults.size();
+					i += thresholds.size() * 2) {
+				fout << "(" << testResults[i].inputSize << ", "
+						<< testResults[i].stdMedian << ") ";
 			}
-			cout << endl;
-		}
+			fout << endl << endl;
 
-		for (int i = 0; i < thresholds.size() * 2; i++) {
-			cout << "Speedup (threshold = " << testResults[i].threshold
-					<< ", withPresort = " << testResults[i].withPresort << "):"
-					<< endl;
+			fout << " ==== SAMPLESORT ====" << endl;
+			for (int i = 0; i < thresholds.size() * 2; i++) {
+				fout << "Runtime (threshold = " << testResults[i].threshold
+						<< ", withPresort = " << testResults[i].withPresort
+						<< "):" << endl;
 
-			for (int j = i; j < testResults.size();
-					j += thresholds.size() * 2) {
-				cout << "(" << testResults[j].inputSize << ", "
-						<< (testResults[j].stdMedian
-								/ (double) testResults[j].ourMedian) << ") ";
+				for (int j = i; j < testResults.size();
+						j += thresholds.size() * 2) {
+					fout << "(" << testResults[j].inputSize << ", "
+							<< testResults[j].ourMedian << ") ";
+				}
+				fout << endl << endl;
 			}
-			cout << endl;
+
+			for (int i = 0; i < thresholds.size() * 2; i++) {
+				fout << "Speedup (threshold = " << testResults[i].threshold
+						<< ", withPresort = " << testResults[i].withPresort
+						<< "):" << endl;
+
+				for (int j = i; j < testResults.size();
+						j += thresholds.size() * 2) {
+					fout << "(" << testResults[j].inputSize << ", "
+							<< (testResults[j].stdMedian
+									/ (double) testResults[j].ourMedian)
+							<< ") ";
+				}
+				fout << endl << endl;
+			}
+
+			fout.close();
 		}
 	}
 
