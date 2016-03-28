@@ -95,7 +95,7 @@ bool checkSorted(vector<T> &array, int mpiRank, int mpiSize) {
 }
 
 unsigned long runTest(int recursiveThreshold, bool withPresort, int inputSize,
-		bool withLogStrategy) {
+		bool withLogStrategy, bool randomData) {
 	int mpiSize = COMM_WORLD.Get_size();
 	int mpiRank = COMM_WORLD.Get_rank();
 
@@ -110,7 +110,14 @@ unsigned long runTest(int recursiveThreshold, bool withPresort, int inputSize,
 	RecursiveSortSamplesStrategy<int> sortSamplesStrategy(recursiveThreshold);
 	SampleSort<int> sorter(params, sortSamplesStrategy);
 	vector<int> data(inputSize / mpiSize);
-	generateRandomData(data, mpiSize);
+
+	if (randomData) {
+		generateRandomData(data, mpiSize);
+	} else {
+		for (int i = 0; i < inputSize / mpiSize; i++) {
+			data[i] = 0;
+		}
+	}
 
 	COMM_WORLD.Barrier();
 	unsigned long start =
@@ -144,13 +151,20 @@ unsigned long runTest(int recursiveThreshold, bool withPresort, int inputSize,
 }
 
 unsigned long runStdSort(int recursiveThreshold, bool withPresort,
-		int inputSize, bool withLogStrategy) {
+		int inputSize, bool withLogStrategy, bool randomData) {
 	int mpiSize = COMM_WORLD.Get_size();
 	int mpiRank = COMM_WORLD.Get_rank();
 
 	if (mpiRank == 0) {
 		vector<int> data(inputSize);
-		generateRandomData(data, mpiSize);
+
+		if (randomData) {
+			generateRandomData(data, mpiSize);
+		} else {
+			for (int i = 0; i < inputSize; i++) {
+				data[i] = 0;
+			}
+		}
 
 		unsigned long start =
 				chrono::high_resolution_clock::now().time_since_epoch().count();
@@ -197,7 +211,8 @@ bool testAllEqualValue(int recursive_threshold, double value) {
 
 unsigned long runTests(const int warmUp, const int runCount,
 		int recursiveThreshold, bool withPresort, int inputSize,
-		bool withLogStrategy, unsigned long test(int, bool, int, bool)) {
+		bool withLogStrategy, bool randomData,
+		unsigned long test(int, bool, int, bool, bool)) {
 	int mpiSize = COMM_WORLD.Get_size();
 	int mpiRank = COMM_WORLD.Get_rank();
 	vector<unsigned long> times;
@@ -208,7 +223,8 @@ unsigned long runTests(const int warmUp, const int runCount,
 		}
 
 		COMM_WORLD.Barrier();
-		test(recursiveThreshold, withPresort, inputSize, withLogStrategy);
+		test(recursiveThreshold, withPresort, inputSize, withLogStrategy,
+				randomData);
 	}
 
 	for (int i = 0; i < runCount; i++) {
@@ -222,7 +238,7 @@ unsigned long runTests(const int warmUp, const int runCount,
 		COMM_WORLD.Barrier();
 		times.push_back(
 				test(recursiveThreshold, withPresort, inputSize,
-						withLogStrategy));
+						withLogStrategy, randomData));
 	}
 
 	sort(times.begin(), times.end());
@@ -240,6 +256,7 @@ struct TestResult {
 	bool withPresort;
 	int threshold;
 	bool withLogStrategy;
+	bool randomData;
 	unsigned long stdMedian;
 	unsigned long ourMedian;
 };
@@ -286,8 +303,9 @@ int main(int argc, char *argv[]) {
 
 		struct TestResult testResult;
 		testResult.inputSize = inputSize;
+		testResult.randomData = false;
 		testResult.stdMedian = runTests(10, repetitions, -1, false, inputSize,
-				false, runStdSort);
+				false, false, runStdSort);
 
 		if (mpiRank == 0) {
 			cout << " ====== TESTING SAMPLESORT ====== " << endl;
@@ -304,23 +322,67 @@ int main(int argc, char *argv[]) {
 
 			testResult.withPresort = true;
 			testResult.ourMedian = runTests(10, repetitions, thresholds[i],
-					true, inputSize, true, runTest);
+					true, inputSize, true, false, runTest);
 			testResults.push_back(testResult);
 
 			testResult.withPresort = false;
 			testResult.ourMedian = runTests(10, repetitions, thresholds[i],
-					false, inputSize, true, runTest);
+					false, inputSize, true, false, runTest);
 			testResults.push_back(testResult);
 
 			testResult.withLogStrategy = false;
 			testResult.withPresort = true;
 			testResult.ourMedian = runTests(10, repetitions, thresholds[i],
-					true, inputSize, false, runTest);
+					true, inputSize, false, false, runTest);
 			testResults.push_back(testResult);
 
 			testResult.withPresort = false;
 			testResult.ourMedian = runTests(10, repetitions, thresholds[i],
-					false, inputSize, false, runTest);
+					false, inputSize, false, false, runTest);
+			testResults.push_back(testResult);
+		}
+
+		if (mpiRank == 0) {
+			cout << " ====== TESTING STD::SORT  ====== " << endl;
+		}
+
+		testResult.inputSize = inputSize;
+		testResult.randomData = true;
+		testResult.stdMedian = runTests(10, repetitions, -1, false, inputSize,
+				false, true, runStdSort);
+
+		if (mpiRank == 0) {
+			cout << " ====== TESTING SAMPLESORT ====== " << endl;
+		}
+
+		for (int i = 0; i < thresholds.size(); i++) {
+			if (mpiRank == 0) {
+				cout << " ====== ROUND " << (i + 1) << "/" << thresholds.size()
+						<< " ====== " << endl;
+			}
+
+			testResult.threshold = thresholds[i];
+			testResult.withLogStrategy = true;
+
+			testResult.withPresort = true;
+			testResult.ourMedian = runTests(10, repetitions, thresholds[i],
+					true, inputSize, true, true, runTest);
+			testResults.push_back(testResult);
+
+			testResult.withPresort = false;
+			testResult.ourMedian = runTests(10, repetitions, thresholds[i],
+					false, inputSize, true, true, runTest);
+			testResults.push_back(testResult);
+
+			testResult.withLogStrategy = false;
+			testResult.withPresort = true;
+			testResult.ourMedian = runTests(10, repetitions, thresholds[i],
+					true, inputSize, false, true, runTest);
+			testResults.push_back(testResult);
+
+			testResult.withPresort = false;
+			testResult.ourMedian = runTests(10, repetitions, thresholds[i],
+					false, inputSize, false, true, runTest);
 			testResults.push_back(testResult);
 		}
 	}
@@ -332,19 +394,23 @@ int main(int argc, char *argv[]) {
 			double localEfficiency = speedUp / concurrentThreadsSupported;
 			double globalEfficiency = speedUp / mpiSize;
 
-			cout << "For threshold =         " << testResult.threshold << endl;
-			cout << "  MPI size =            " << mpiSize << endl;
-			cout << "  local size =          " << concurrentThreadsSupported
+			cout << "For threshold =             " << testResult.threshold
 					<< endl;
-			cout << "  input size =          " << testResult.inputSize << endl;
-			cout << "  repetitions =         " << repetitions << endl;
-			cout << "  presort =             " << testResult.withPresort
+			cout << "  MPI size =                " << mpiSize << endl;
+			cout << "  local size =              " << concurrentThreadsSupported
 					<< endl;
-			cout << "  median runtime =      " << testResult.ourMedian << "us"
+			cout << "  input size =              " << testResult.inputSize
 					<< endl;
-			cout << "  speedUp =             " << speedUp << endl;
-			cout << "  efficiency (local) =  " << localEfficiency << endl;
-			cout << "  efficiency (global) = " << globalEfficiency << endl;
+			cout << "  repetitions =             " << repetitions << endl;
+			cout << "  presort =                 " << testResult.withPresort
+					<< endl;
+			cout << "  data random/uniform 1/0 = " << testResult.randomData
+					<< endl;
+			cout << "  median runtime =          " << testResult.ourMedian
+					<< "us" << endl;
+			cout << "  speedUp =                 " << speedUp << endl;
+			cout << "  efficiency (local) =      " << localEfficiency << endl;
+			cout << "  efficiency (global) =     " << globalEfficiency << endl;
 		}
 
 		if (DO_BENCHMARK) {
@@ -358,21 +424,30 @@ int main(int argc, char *argv[]) {
 			fout << "<><><><><><> PGFPLOT OUTPUT <><><><><><>" << endl;
 			fout << "<><><><><><><><><><><><><><><><><><><><>" << endl << endl;
 
-			fout << " ==== STD::SORT  ====" << endl;
-			fout << "Runtime:" << endl;
+			fout << " ==== STD::SORT  ====" << endl << endl;
+			fout << "Runtime: (randomData = false):" << endl;
 			for (int i = 0; i < testResults.size();
-					i += thresholds.size() * 4) {
+					i += thresholds.size() * 8) {
 				fout << "(" << testResults[i].inputSize << ", "
 						<< testResults[i].stdMedian << ") ";
 			}
 			fout << endl << endl;
 
-			fout << " ==== SAMPLESORT ====" << endl;
-			for (int i = 0; i < thresholds.size() * 4; i++) {
+			fout << "Runtime: (randomData = true):" << endl;
+			for (int i = thresholds.size() * 4; i < testResults.size();
+					i += thresholds.size() * 8) {
+				fout << "(" << testResults[i].inputSize << ", "
+						<< testResults[i].stdMedian << ") ";
+			}
+			fout << endl << endl;
+
+			fout << " ==== SAMPLESORT ====" << endl << endl;
+			for (int i = 0; i < thresholds.size() * 8; i++) {
 				fout << "Runtime (threshold = " << testResults[i].threshold
 						<< ", withPresort = " << testResults[i].withPresort
 						<< ", withLogStrategy = "
-						<< testResults[i].withLogStrategy << "):" << endl;
+						<< testResults[i].withLogStrategy << ", randomData = "
+						<< testResults[i].randomData << "):" << endl;
 
 				for (int j = i; j < testResults.size();
 						j += thresholds.size() * 4) {
@@ -382,11 +457,12 @@ int main(int argc, char *argv[]) {
 				fout << endl << endl;
 			}
 
-			for (int i = 0; i < thresholds.size() * 4; i++) {
+			for (int i = 0; i < thresholds.size() * 8; i++) {
 				fout << "Speedup (threshold = " << testResults[i].threshold
 						<< ", withPresort = " << testResults[i].withPresort
 						<< ", withLogStrategy = "
-						<< testResults[i].withLogStrategy << "):" << endl;
+						<< testResults[i].withLogStrategy << ", randomData = "
+						<< testResults[i].randomData << "):" << endl;
 
 				for (int j = i; j < testResults.size();
 						j += thresholds.size() * 4) {
