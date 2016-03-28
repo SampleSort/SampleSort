@@ -37,6 +37,10 @@ SampleSort<T>::SampleSort(SampleSortParams &p,
 template<typename T>
 void SampleSort<T>::sort(vector<T> &data, vector<T> &sortedData,
 		int globalDataSize) {
+	if (data.empty()) {
+		throw runtime_error("Data must not be empty!");
+	}
+
 	if (p.presortLocalData) {
 		std::sort(data.begin(), data.end());
 	}
@@ -68,6 +72,7 @@ template<typename T>
 void SampleSort<T>::drawSamples(vector<T> &data, vector<T> &samples) {
 	default_random_engine randomGenerator(getSeed() * (p.mpiRank + 5));
 	uniform_int_distribution<int> randomDistribution(0, data.size() - 1);
+	samples.reserve(p.sampleSize);
 
 	while (samples.size() < p.sampleSize) {
 		int randomValue = randomDistribution(randomGenerator);
