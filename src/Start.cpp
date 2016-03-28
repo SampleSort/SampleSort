@@ -290,7 +290,7 @@ int main(int argc, char *argv[]) {
 	//thresholds.push_back(320);
 	thresholds.push_back(1 << 30);
 
-	for (int i = ceil(log2(mpiSize)); i < 13; i++) {
+	for (int i = max(ceil(log2(mpiSize)), 12); i < 24; i++) {
 		inputSizes.push_back(1 << i);
 	}
 
@@ -450,7 +450,7 @@ int main(int argc, char *argv[]) {
 						<< testResults[i].randomData << "):" << endl;
 
 				for (int j = i; j < testResults.size();
-						j += thresholds.size() * 4) {
+						j += thresholds.size() * 8) {
 					fout << "(" << testResults[j].inputSize << ", "
 							<< testResults[j].ourMedian << ") ";
 				}
@@ -465,7 +465,7 @@ int main(int argc, char *argv[]) {
 						<< testResults[i].randomData << "):" << endl;
 
 				for (int j = i; j < testResults.size();
-						j += thresholds.size() * 4) {
+						j += thresholds.size() * 8) {
 					fout << "(" << testResults[j].inputSize << ", "
 							<< (testResults[j].stdMedian
 									/ (double) testResults[j].ourMedian)
