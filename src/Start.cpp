@@ -290,7 +290,7 @@ int main(int argc, char *argv[]) {
 	//thresholds.push_back(320);
 	thresholds.push_back(1 << 30);
 
-	for (int i = ceil(log2(mpiSize)); i < 23; i++) {
+	for (int i = ceil(log2(mpiSize)); i < 13; i++) {
 		inputSizes.push_back(1 << i);
 	}
 
@@ -415,7 +415,7 @@ int main(int argc, char *argv[]) {
 
 		if (DO_BENCHMARK) {
 			stringstream filename;
-			filename << "Benchmark_SampleSort_NT_" << mpiSize << ".txt" << endl;
+			filename << "Benchmark_SampleSort_NT_" << mpiSize << "_" << mpiRank << ".txt";
 
 			ofstream fout;
 			fout.open(filename.str().c_str(), ios::in | ios::trunc);
