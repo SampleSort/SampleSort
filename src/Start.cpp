@@ -290,7 +290,7 @@ int main(int argc, char *argv[]) {
 	//thresholds.push_back(320);
 	thresholds.push_back(1 << 30);
 
-	for (int i = max(ceil(log2(mpiSize)), 12); i < 24; i++) {
+	for (int i = max((int) ceil(log2(mpiSize)), 12); i < 24; i++) {
 		inputSizes.push_back(1 << i);
 	}
 
