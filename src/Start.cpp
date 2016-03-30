@@ -43,7 +43,7 @@ void generateRandomData(vector<int> &data, int minMax) {
 	uniform_int_distribution<int> randomDistribution(-data.size() * minMax,
 			data.size() * minMax);
 
-	for (int i = 0; i < data.capacity(); i++) {
+	for (int i = 0; i < data.size(); i++) {
 		data[i] = randomDistribution(randomGenerator);
 		//cout << data[i] << endl;
 	}
@@ -415,7 +415,8 @@ int main(int argc, char *argv[]) {
 
 		if (DO_BENCHMARK) {
 			stringstream filename;
-			filename << "Benchmark_SampleSort_NT_" << mpiSize << "_" << mpiRank << ".txt";
+			filename << "Benchmark_SampleSort_NT_" << mpiSize << "_" << mpiRank
+					<< ".txt";
 
 			ofstream fout;
 			fout.open(filename.str().c_str(), ios::in | ios::trunc);
