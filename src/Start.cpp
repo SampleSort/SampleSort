@@ -132,9 +132,12 @@ unsigned long runTest(int recursiveThreshold, bool withPresort, int inputSize,
 
 	unsigned long maxTime;
 	unsigned long localTime = end - start;
-	COMM_WORLD.Reduce(&localTime, &maxTime, 1, MPI::UNSIGNED_LONG, MPI::MAX, 0);
+	unsigned long minStart;
+	unsigned long maxEnd;
+	COMM_WORLD.Reduce(&start, &minStart, 1, MPI::UNSIGNED_LONG, MPI::MIN, 0);
+	COMM_WORLD.Reduce(&end, &maxEnd, 1, MPI::UNSIGNED_LONG, MPI::MAX, 0);
 
-	double time = maxTime;
+	double time = maxEnd - minStart;
 	time *= chrono::high_resolution_clock::period::type::num;
 	time /= chrono::high_resolution_clock::period::type::den;
 
